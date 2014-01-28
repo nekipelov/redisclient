@@ -3,8 +3,6 @@
  * License: MIT
  */
 
-#include "redisclient.h"
-
 #include <boost/asio/streambuf.hpp>
 #include <boost/asio/read_until.hpp>
 #include <boost/asio/write.hpp>
@@ -19,6 +17,9 @@
 #include <algorithm>
 #include <list>
 #include <queue>
+
+#include "redisclient.h"
+
 
 static void append(std::vector<char> &vec, const std::string &s)
 {
@@ -70,40 +71,40 @@ public:
                             const boost::function<void(const boost::system::error_code &)> &handler);
 
     void doCommand(const std::vector<std::string> &command,
-                   const boost::function<void(const Value &)> &handler);
+                   const boost::function<void(const RedisValue &)> &handler);
     void sendNextCommand();
-    void readResponse(const boost::function<void(const Value &)> &handler);
+    void readResponse(const boost::function<void(const RedisValue &)> &handler);
     void processMessage();
-    void doProcessMessage(const Value &v);
+    void doProcessMessage(const RedisValue &v);
 
-    void readString(const boost::function<void(const Value &)> &handler);
-    void readInt(const boost::function<void(const Value &)> &handler);
-    void readBulkItem(const boost::function<void(const Value &)> &handler);
-    void readMultiBulkItem(const boost::function<void(const Value &)> &handler);
-    void readMultiBulkItemHandler(int recursion, const std::list<Value> &result,
-                                  const boost::function<void(const Value &)> &handler);
+    void readString(const boost::function<void(const RedisValue &)> &handler);
+    void readInt(const boost::function<void(const RedisValue &)> &handler);
+    void readBulkItem(const boost::function<void(const RedisValue &)> &handler);
+    void readMultiBulkItem(const boost::function<void(const RedisValue &)> &handler);
+    void readMultiBulkItemHandler(int recursion, const std::list<RedisValue> &result,
+                                  const boost::function<void(const RedisValue &)> &handler);
 
     void asyncWrite(const boost::system::error_code &ec, const size_t);
-    void asyncRead(const boost::function<void(const Value &)> &handler,
+    void asyncRead(const boost::function<void(const RedisValue &)> &handler,
                    const boost::system::error_code &ec, const size_t);
-    void asyncReadInt(const boost::function<void(const Value &)> &handler,
+    void asyncReadInt(const boost::function<void(const RedisValue &)> &handler,
                       const boost::system::error_code &ec, const size_t);
-    void asyncReadString(const boost::function<void(const Value &)> &handler,
+    void asyncReadString(const boost::function<void(const RedisValue &)> &handler,
                          const boost::system::error_code &ec, const size_t);
 
-    void asyncReadBulkItem(const boost::function<void(const Value &)> &handler,
+    void asyncReadBulkItem(const boost::function<void(const RedisValue &)> &handler,
                            const boost::system::error_code &ec, const size_t);
-    void asyncReadBulkItemIntHandler(const boost::function<void(const Value &)> &handler,
-                                     const Value &v);
-    void readMultiBulkItemIntHandler(const boost::function<void(const Value &)> &handler,
-                                     const Value &v);
-    void asyncReadMultiBulkItemHandler(int recursion, const std::list<Value> &result,
-                                       const boost::function<void(const Value &)> &handler,
+    void asyncReadBulkItemIntHandler(const boost::function<void(const RedisValue &)> &handler,
+                                     const RedisValue &v);
+    void readMultiBulkItemIntHandler(const boost::function<void(const RedisValue &)> &handler,
+                                     const RedisValue &v);
+    void asyncReadMultiBulkItemHandler(int recursion, const std::list<RedisValue> &result,
+                                       const boost::function<void(const RedisValue &)> &handler,
                                        const boost::system::error_code &ec, const size_t);
-    void recursionStep(int recursion, const std::list<Value> &result,
-                       const boost::function<void(const Value &)> &handler,
-                       const Value &v);
-    void onRedisError(const Value &);
+    void recursionStep(int recursion, const std::list<RedisValue> &result,
+                       const boost::function<void(const RedisValue &)> &handler,
+                       const RedisValue &v);
+    void onRedisError(const RedisValue &);
     void defaulErrorHandler(const std::string &s);
 
     enum {
@@ -123,12 +124,12 @@ public:
     typedef std::multimap<std::string, MsgHandlerType> MsgHandlersMap;
     typedef std::multimap<std::string, SingleShotHandlerType> SingleShotHandlersMap;
 
-    std::queue<boost::function<void(const Value &v)> > handlers;
+    std::queue<boost::function<void(const RedisValue &v)> > handlers;
     MsgHandlersMap msgHandlers;
     SingleShotHandlersMap singleShotMsgHandlers;
 
     struct QueueItem {
-        boost::function<void(const Value &)> handler;
+        boost::function<void(const RedisValue &)> handler;
         boost::shared_ptr<std::vector<char> > buff;
     };
 
@@ -203,7 +204,7 @@ void RedisClient::installErrorHandler(
     pimpl->errorHandler = handler;
 }
 
-void RedisClient::command(const std::string &s, const boost::function<void(const Value &)> &handler)
+void RedisClient::command(const std::string &s, const boost::function<void(const RedisValue &)> &handler)
 {
     checkState();
 
@@ -215,7 +216,7 @@ void RedisClient::command(const std::string &s, const boost::function<void(const
 }
 
 void RedisClient::command(const std::string &cmd, const std::string &arg1,
-                          const boost::function<void(const Value &)> &handler)
+                          const boost::function<void(const RedisValue &)> &handler)
 {
     checkState();
 
@@ -229,7 +230,7 @@ void RedisClient::command(const std::string &cmd, const std::string &arg1,
 
 void RedisClient::command(const std::string &cmd, const std::string &arg1,
                           const std::string &arg2,
-                          const boost::function<void(const Value &)> &handler)
+                          const boost::function<void(const RedisValue &)> &handler)
 {
     checkState();
 
@@ -244,7 +245,7 @@ void RedisClient::command(const std::string &cmd, const std::string &arg1,
 
 void RedisClient::command(const std::string &cmd, const std::string &arg1,
                           const std::string &arg2, const std::string &arg3,
-                          const boost::function<void(const Value &)> &handler)
+                          const boost::function<void(const RedisValue &)> &handler)
 {
     checkState();
 
@@ -261,7 +262,7 @@ void RedisClient::command(const std::string &cmd, const std::string &arg1,
 void RedisClient::command(const std::string &cmd, const std::string &arg1,
                           const std::string &arg2, const std::string &arg3,
                           const std::string &arg4,
-                          const boost::function<void(const Value &)> &handler)
+                          const boost::function<void(const RedisValue &)> &handler)
 {
     checkState();
 
@@ -279,7 +280,7 @@ void RedisClient::command(const std::string &cmd, const std::string &arg1,
 void RedisClient::command(const std::string &cmd, const std::string &arg1,
                           const std::string &arg2, const std::string &arg3,
                           const std::string &arg4, const std::string &arg5,
-                          const boost::function<void(const Value &)> &handler)
+                          const boost::function<void(const RedisValue &)> &handler)
 {
     checkState();
 
@@ -299,7 +300,7 @@ void RedisClient::command(const std::string &cmd, const std::string &arg1,
                           const std::string &arg2, const std::string &arg3,
                           const std::string &arg4, const std::string &arg5,
                           const std::string &arg6,
-                          const boost::function<void(const Value &)> &handler)
+                          const boost::function<void(const RedisValue &)> &handler)
 {
     checkState();
 
@@ -320,7 +321,7 @@ void RedisClient::command(const std::string &cmd, const std::string &arg1,
                           const std::string &arg2, const std::string &arg3,
                           const std::string &arg4, const std::string &arg5,
                           const std::string &arg6, const std::string &arg7,
-                          const boost::function<void(const Value &)> &handler)
+                          const boost::function<void(const RedisValue &)> &handler)
 {
     checkState();
 
@@ -342,7 +343,7 @@ void RedisClient::command(const std::string &cmd, const std::string &arg1,
 RedisClient::Handle RedisClient::subscribe(
         const std::string &channel,
         const boost::function<void(const std::string &msg)> &msgHandler,
-        const boost::function<void(const Value &)> &handler)
+        const boost::function<void(const RedisValue &)> &handler)
 {
     assert( pimpl->state == RedisClientImpl::Connected ||
             pimpl->state == RedisClientImpl::Subscribed);
@@ -441,7 +442,7 @@ void RedisClient::unsubscribe(const Handle &handle)
 
 void RedisClient::singleShotSubscribe(const std::string &channel,
                                       const boost::function<void(const std::string &msg)> &msgHandler,
-                                      const boost::function<void(const Value &)> &handler)
+                                      const boost::function<void(const RedisValue &)> &handler)
 {
     assert( pimpl->state == RedisClientImpl::Connected ||
             pimpl->state == RedisClientImpl::Subscribed);
@@ -474,7 +475,7 @@ void RedisClient::singleShotSubscribe(const std::string &channel,
 
 
 void RedisClient::publish(const std::string &channel, const std::string &msg,
-                          const boost::function<void(const Value &)> &handler)
+                          const boost::function<void(const RedisValue &)> &handler)
 {
     assert( pimpl->state == RedisClientImpl::Connected );
 
@@ -535,18 +536,18 @@ void RedisClientImpl::processMessage()
     readResponse(boost::bind(&RedisClientImpl::doProcessMessage, shared_from_this(), _1));
 }
 
-void RedisClientImpl::doProcessMessage(const Value &v)
+void RedisClientImpl::doProcessMessage(const RedisValue &v)
 {
     if( state == RedisClientImpl::Subscribed )
     {
-        std::list<Value> result = v.toValue<std::list<Value> >();
+        std::list<RedisValue> result = v.toList();
 
         if( result.size() == 3 )
         {
-            std::list<Value>::iterator it = result.begin();
-            const Value &command = *it++;
-            const Value &queue = *it++;
-            const Value &value = *it++;
+            std::list<RedisValue>::iterator it = result.begin();
+            const RedisValue &command = *it++;
+            const RedisValue &queue = *it++;
+            const RedisValue &RedisValue = *it++;
 
             const std::string &cmd = command.toString();
 
@@ -555,14 +556,14 @@ void RedisClientImpl::doProcessMessage(const Value &v)
                 SingleShotHandlersMap::iterator it = singleShotMsgHandlers.find(queue.toString());
                 if( it != singleShotMsgHandlers.end() )
                 {
-                    ioService.post(boost::bind(it->second, value.toString()));
+                    ioService.post(boost::bind(it->second, RedisValue.toString()));
                     singleShotMsgHandlers.erase(it);
                 }
                 
                 std::pair<MsgHandlersMap::iterator, MsgHandlersMap::iterator> pair =
                         msgHandlers.equal_range(queue.toString());
                 for(MsgHandlersMap::iterator it = pair.first; it != pair.second; ++it)
-                    ioService.post(boost::bind(it->second.second, value.toString()));
+                    ioService.post(boost::bind(it->second.second, RedisValue.toString()));
             }
             else if( cmd == "subscribe" && handlers.empty() == false )
             {
@@ -652,7 +653,7 @@ void RedisClientImpl::handleAsyncConnect(const boost::system::error_code &ec,
 }
 
 void RedisClientImpl::doCommand(const std::vector<std::string> &command,
-                                const boost::function<void(const Value &)> &handler)
+                                const boost::function<void(const RedisValue &)> &handler)
 {
     using boost::system::error_code;
     static const char crlf[] = {'\r', '\n'};
@@ -686,7 +687,7 @@ void RedisClientImpl::doCommand(const std::vector<std::string> &command,
     }
 }
 
-void RedisClientImpl::asyncRead(const boost::function<void(const Value &)> &handler,
+void RedisClientImpl::asyncRead(const boost::function<void(const RedisValue &)> &handler,
                                 const boost::system::error_code &ec, const size_t)
 {
     if( ec )
@@ -723,7 +724,7 @@ void RedisClientImpl::asyncRead(const boost::function<void(const Value &)> &hand
     }
 }
 
-void RedisClientImpl::readResponse(const boost::function<void(const Value &)> &handler)
+void RedisClientImpl::readResponse(const boost::function<void(const RedisValue &)> &handler)
 {
     using boost::system::error_code;
     boost::asio::async_read_until(socket, inputBuf,
@@ -732,7 +733,7 @@ void RedisClientImpl::readResponse(const boost::function<void(const Value &)> &h
                                               shared_from_this(), handler, _1, _2));
 }
 
-void RedisClientImpl::asyncReadInt(const boost::function<void(const Value &)> &handler,
+void RedisClientImpl::asyncReadInt(const boost::function<void(const RedisValue &)> &handler,
                                    const boost::system::error_code &ec, const size_t)
 {
     if( ec )
@@ -752,7 +753,7 @@ void RedisClientImpl::asyncReadInt(const boost::function<void(const Value &)> &h
     handler(atoi(result.c_str()));
 }
 
-void RedisClientImpl::readInt(const boost::function<void(const Value &)> &handler)
+void RedisClientImpl::readInt(const boost::function<void(const RedisValue &)> &handler)
 {
     using boost::system::error_code;
     boost::asio::async_read_until(socket, inputBuf, "\r\n",
@@ -760,7 +761,7 @@ void RedisClientImpl::readInt(const boost::function<void(const Value &)> &handle
                                               shared_from_this(), handler, _1, _2));
 }
 
-void RedisClientImpl::asyncReadString(const boost::function<void(const Value &)> &handler,
+void RedisClientImpl::asyncReadString(const boost::function<void(const RedisValue &)> &handler,
                                       const boost::system::error_code &ec, const size_t)
 {
     if( ec )
@@ -781,7 +782,7 @@ void RedisClientImpl::asyncReadString(const boost::function<void(const Value &)>
     handler(result);
 }
 
-void RedisClientImpl::readString(const boost::function<void(const Value &)> &handler)
+void RedisClientImpl::readString(const boost::function<void(const RedisValue &)> &handler)
 {
     using boost::system::error_code;
     boost::asio::async_read_until(socket, inputBuf, "\r\n",
@@ -789,7 +790,7 @@ void RedisClientImpl::readString(const boost::function<void(const Value &)> &han
                                               shared_from_this(), handler, _1, _2));
 }
 
-void RedisClientImpl::asyncReadBulkItem(const boost::function<void(const Value &)> &handler,
+void RedisClientImpl::asyncReadBulkItem(const boost::function<void(const RedisValue &)> &handler,
                                         const boost::system::error_code &ec, const size_t size)
 {
     if( ec )
@@ -809,13 +810,13 @@ void RedisClientImpl::asyncReadBulkItem(const boost::function<void(const Value &
 }
 
 void RedisClientImpl::asyncReadBulkItemIntHandler(
-        const boost::function<void(const Value &)> &handler,
-        const Value &v)
+        const boost::function<void(const RedisValue &)> &handler,
+        const RedisValue &v)
 {
     int size = v.toInt();
     if( size <= 0  )
     {
-        handler(Value());
+        handler(RedisValue());
         return;
     }
 
@@ -824,48 +825,48 @@ void RedisClientImpl::asyncReadBulkItemIntHandler(
                                               shared_from_this(), handler, _1, size));
 }
 
-void RedisClientImpl::readBulkItem(const boost::function<void(const Value &)> &handler)
+void RedisClientImpl::readBulkItem(const boost::function<void(const RedisValue &)> &handler)
 {
     readInt(boost::bind(&RedisClientImpl::asyncReadBulkItemIntHandler,
                         shared_from_this(), handler, _1));
 }
 
 void RedisClientImpl::readMultiBulkItemIntHandler(
-        const boost::function<void(const Value &)> &handler,
-        const Value &v)
+        const boost::function<void(const RedisValue &)> &handler,
+        const RedisValue &v)
 {
     int size = v.toInt();
     if( size <= 0 )
     {
-        handler(Value());
+        handler(RedisValue());
     }
     else
     {
-        readMultiBulkItemHandler(size, std::list<Value>(), handler);
+        readMultiBulkItemHandler(size, std::list<RedisValue>(), handler);
     }
 }
 
-void RedisClientImpl::readMultiBulkItem(const boost::function<void(const Value &)> &handler)
+void RedisClientImpl::readMultiBulkItem(const boost::function<void(const RedisValue &)> &handler)
 {
     readInt(boost::bind(&RedisClientImpl::readMultiBulkItemIntHandler,
                         shared_from_this(), handler, _1));
 }
 
 void RedisClientImpl::recursionStep(int recursion,
-                                    const std::list<Value> &result,
-                                    const boost::function<void(const Value &)> &handler,
-                                    const Value &v)
+                                    const std::list<RedisValue> &result,
+                                    const boost::function<void(const RedisValue &)> &handler,
+                                    const RedisValue &v)
 {
     assert( recursion >= 0 );
     
-    std::list<Value> copy(result);
+    std::list<RedisValue> copy(result);
     copy.push_back(v);
     readMultiBulkItemHandler(recursion-1, copy, handler); // next call
 }
 
 void RedisClientImpl::asyncReadMultiBulkItemHandler(
-        int recursion, const std::list<Value> &result,
-        const boost::function<void(const Value &)> &handler,
+        int recursion, const std::list<RedisValue> &result,
+        const boost::function<void(const RedisValue &)> &handler,
         const boost::system::error_code &ec, size_t)
 {
     if( ec )
@@ -874,7 +875,7 @@ void RedisClientImpl::asyncReadMultiBulkItemHandler(
         return;
     }
 
-    boost::function<void(const Value &)> readHandler =
+    boost::function<void(const RedisValue &)> readHandler =
             boost::bind(&RedisClientImpl::recursionStep,
                         shared_from_this(), recursion, result, handler, _1);
 
@@ -896,14 +897,14 @@ void RedisClientImpl::asyncReadMultiBulkItemHandler(
     }
 }
 
-void RedisClientImpl::readMultiBulkItemHandler(int recursion, const std::list<Value> &result,
-                                               const boost::function<void(const Value &)> &handler)
+void RedisClientImpl::readMultiBulkItemHandler(int recursion, const std::list<RedisValue> &result,
+                                               const boost::function<void(const RedisValue &)> &handler)
 {
     using boost::system::error_code;
 
     if( recursion == 0 )
     {
-        handler(Value::fromValue(result));
+        handler(RedisValue(result));
     }
     else
     {
@@ -915,7 +916,7 @@ void RedisClientImpl::readMultiBulkItemHandler(int recursion, const std::list<Va
     }
 }
 
-void RedisClientImpl::onRedisError(const Value &v)
+void RedisClientImpl::onRedisError(const RedisValue &v)
 {
     std::string message = v.toString();
     errorHandler(message);

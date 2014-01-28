@@ -15,7 +15,7 @@
 #include <list>
 #include <memory>
 
-#include "value.h"
+#include "redisvalue.h"
 
 class RedisClientImpl;
 
@@ -38,56 +38,56 @@ public:
     void installErrorHandler(const boost::function<void(const std::string &)> &handler);
 
     void command(const std::string &cmd,
-                 const boost::function<void(const Value &)> &handler = &dummyHandler);
+                 const boost::function<void(const RedisValue &)> &handler = &dummyHandler);
 
     void command(const std::string &cmd, const std::string &arg1,
-                 const boost::function<void(const Value &)> &handler = &dummyHandler);
+                 const boost::function<void(const RedisValue &)> &handler = &dummyHandler);
 
     void command(const std::string &cmd, const std::string &arg1,
                  const std::string &arg2,
-                 const boost::function<void(const Value &)> &handler = &dummyHandler);
+                 const boost::function<void(const RedisValue &)> &handler = &dummyHandler);
 
     void command(const std::string &cmd, const std::string &arg1,
                  const std::string &arg2, const std::string &arg3,
-                 const boost::function<void(const Value &)> &handler = &dummyHandler);
+                 const boost::function<void(const RedisValue &)> &handler = &dummyHandler);
 
     void command(const std::string &cmd, const std::string &arg1,
                  const std::string &arg2, const std::string &arg3,
                  const std::string &arg4,
-                 const boost::function<void(const Value &)> &handler = &dummyHandler);
+                 const boost::function<void(const RedisValue &)> &handler = &dummyHandler);
 
     void command(const std::string &cmd, const std::string &arg1,
                  const std::string &arg2, const std::string &arg3,
                  const std::string &arg4, const std::string &arg5,
-                 const boost::function<void(const Value &)> &handler = &dummyHandler);
+                 const boost::function<void(const RedisValue &)> &handler = &dummyHandler);
 
     void command(const std::string &cmd, const std::string &arg1,
                  const std::string &arg2, const std::string &arg3,
                  const std::string &arg4, const std::string &arg5,
                  const std::string &arg6,
-                 const boost::function<void(const Value &)> &handler = &dummyHandler);
+                 const boost::function<void(const RedisValue &)> &handler = &dummyHandler);
 
     void command(const std::string &cmd, const std::string &arg1,
                  const std::string &arg2, const std::string &arg3,
                  const std::string &arg4, const std::string &arg5,
                  const std::string &arg6, const std::string &arg7,
-                 const boost::function<void(const Value &)> &handler = &dummyHandler);
+                 const boost::function<void(const RedisValue &)> &handler = &dummyHandler);
 
 
     Handle subscribe(const std::string &channel,
                      const boost::function<void(const std::string &msg)> &msgHandler,
-                     const boost::function<void(const Value &)> &handler = &dummyHandler);
+                     const boost::function<void(const RedisValue &)> &handler = &dummyHandler);
 
     void unsubscribe(const Handle &handle);
 
     void singleShotSubscribe(const std::string &channel,
                              const boost::function<void(const std::string &msg)> &msgHandler,
-                             const boost::function<void(const Value &)> &handler = &dummyHandler);
+                             const boost::function<void(const RedisValue &)> &handler = &dummyHandler);
 
     void publish(const std::string &channel, const std::string &msg,
-                 const boost::function<void(const Value &)> &handler = &dummyHandler);
+                 const boost::function<void(const RedisValue &)> &handler = &dummyHandler);
 
-    static void dummyHandler(const Value &) {}
+    static void dummyHandler(const RedisValue &) {}
 
 protected:
     void checkState() const;

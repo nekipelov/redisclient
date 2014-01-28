@@ -13,8 +13,8 @@ public:
     {}
 
     void onConnect(const boost::system::error_code &ec);
-    void onSet(const Value &value);
-    void onGet(const Value &value);
+    void onSet(const RedisValue &value);
+    void onGet(const RedisValue &value);
     void stop();
 
 private:
@@ -35,7 +35,7 @@ void Worker::onConnect(const boost::system::error_code &ec)
     }
 }
 
-void Worker::onSet(const Value &value)
+void Worker::onSet(const RedisValue &value)
 {
     if( value.toString() == "OK" )
     {
@@ -48,7 +48,7 @@ void Worker::onSet(const Value &value)
     }
 }
 
-void Worker::onGet(const Value &value)
+void Worker::onGet(const RedisValue &value)
 {
     if( value.toString() != redisValue )
     {

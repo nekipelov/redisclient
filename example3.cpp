@@ -26,8 +26,8 @@ int main(int, char **)
             ioService.stop();
     });
 
-    publisher.publish(channelName, "First hello", [&](const Value &) {
-        publisher.publish(channelName, "Last hello", [&](const Value &) {
+    publisher.publish(channelName, "First hello", [&](const RedisValue &) {
+        publisher.publish(channelName, "Last hello", [&](const RedisValue &) {
             publisher.publish(channelName, "stop");
         });
     });

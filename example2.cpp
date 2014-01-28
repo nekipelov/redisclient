@@ -17,13 +17,13 @@ int main(int, char **)
         return EXIT_FAILURE;
     }
 
-    redis.command("SET", redisKey, redisValue, [&](const Value &v) {
+    redis.command("SET", redisKey, redisValue, [&](const RedisValue &v) {
         std::cerr << "SET: " << v.toString() << std::endl;
 
-        redis.command("GET", redisKey, [&](const Value &v) {
+        redis.command("GET", redisKey, [&](const RedisValue &v) {
             std::cerr << "GET: " << v.toString() << std::endl;
 
-            redis.command("DEL", redisKey, [&](const Value &v) {
+            redis.command("DEL", redisKey, [&](const RedisValue &v) {
                 ioService.stop();
             });
         });
