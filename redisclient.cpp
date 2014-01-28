@@ -547,7 +547,7 @@ void RedisClientImpl::doProcessMessage(const RedisValue &v)
             std::list<RedisValue>::iterator it = result.begin();
             const RedisValue &command = *it++;
             const RedisValue &queue = *it++;
-            const RedisValue &RedisValue = *it++;
+            const RedisValue &value = *it++;
 
             const std::string &cmd = command.toString();
 
@@ -556,14 +556,14 @@ void RedisClientImpl::doProcessMessage(const RedisValue &v)
                 SingleShotHandlersMap::iterator it = singleShotMsgHandlers.find(queue.toString());
                 if( it != singleShotMsgHandlers.end() )
                 {
-                    ioService.post(boost::bind(it->second, RedisValue.toString()));
+                    ioService.post(boost::bind(it->second, value.toString()));
                     singleShotMsgHandlers.erase(it);
                 }
                 
                 std::pair<MsgHandlersMap::iterator, MsgHandlersMap::iterator> pair =
                         msgHandlers.equal_range(queue.toString());
                 for(MsgHandlersMap::iterator it = pair.first; it != pair.second; ++it)
-                    ioService.post(boost::bind(it->second.second, RedisValue.toString()));
+                    ioService.post(boost::bind(it->second.second, value.toString()));
             }
             else if( cmd == "subscribe" && handlers.empty() == false )
             {
