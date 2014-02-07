@@ -3,23 +3,20 @@
  * License: MIT
  */
 
-#include <boost/asio/streambuf.hpp>
-#include <boost/asio/read_until.hpp>
+#include <boost/array.hpp>
 #include <boost/asio/write.hpp>
 #include <boost/function.hpp>
 #include <boost/bind.hpp>
-#include <boost/bind/protect.hpp>
-#include <boost/logic/tribool.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/enable_shared_from_this.hpp>
 
 #include <string>
 #include <algorithm>
-#include <list>
+#include <vector>
 #include <queue>
 
 #include "redisclient.h"
-
+#include "redisparser.h"
 
 static void append(std::vector<char> &vec, const std::string &s)
 {
@@ -46,24 +43,6 @@ static void append(std::vector<char> &vec, char c)
 
 class RedisClientImpl : public boost::enable_shared_from_this<RedisClientImpl> {
 public:
-
-    class MatchSize {
-    public:
-        explicit MatchSize(size_t size) : size(size) {}
-
-        template <typename iterator>
-        std::pair<iterator, bool> operator()(iterator begin, iterator end) const
-        {
-            if( end - begin > static_cast<ptrdiff_t>(size))
-                return std::make_pair(begin, true);
-            else
-                return std::make_pair(begin, false);
-        }
-
-    private:
-        size_t size;
-    };
-
     RedisClientImpl(boost::asio::io_service &ioService);
     ~RedisClientImpl();
 
@@ -73,37 +52,11 @@ public:
     void doCommand(const std::vector<std::string> &command,
                    const boost::function<void(const RedisValue &)> &handler);
     void sendNextCommand();
-    void readResponse(const boost::function<void(const RedisValue &)> &handler);
     void processMessage();
     void doProcessMessage(const RedisValue &v);
-
-    void readString(const boost::function<void(const RedisValue &)> &handler);
-    void readInt(const boost::function<void(const RedisValue &)> &handler);
-    void readBulkItem(const boost::function<void(const RedisValue &)> &handler);
-    void readMultiBulkItem(const boost::function<void(const RedisValue &)> &handler);
-    void readMultiBulkItemHandler(int recursion, const std::list<RedisValue> &result,
-                                  const boost::function<void(const RedisValue &)> &handler);
-
     void asyncWrite(const boost::system::error_code &ec, const size_t);
-    void asyncRead(const boost::function<void(const RedisValue &)> &handler,
-                   const boost::system::error_code &ec, const size_t);
-    void asyncReadInt(const boost::function<void(const RedisValue &)> &handler,
-                      const boost::system::error_code &ec, const size_t);
-    void asyncReadString(const boost::function<void(const RedisValue &)> &handler,
-                         const boost::system::error_code &ec, const size_t);
+    void asyncRead(const boost::system::error_code &ec, const size_t);
 
-    void asyncReadBulkItem(const boost::function<void(const RedisValue &)> &handler,
-                           const boost::system::error_code &ec, const size_t);
-    void asyncReadBulkItemIntHandler(const boost::function<void(const RedisValue &)> &handler,
-                                     const RedisValue &v);
-    void readMultiBulkItemIntHandler(const boost::function<void(const RedisValue &)> &handler,
-                                     const RedisValue &v);
-    void asyncReadMultiBulkItemHandler(int recursion, const std::list<RedisValue> &result,
-                                       const boost::function<void(const RedisValue &)> &handler,
-                                       const boost::system::error_code &ec, const size_t);
-    void recursionStep(int recursion, const std::list<RedisValue> &result,
-                       const boost::function<void(const RedisValue &)> &handler,
-                       const RedisValue &v);
     void onRedisError(const RedisValue &);
     void defaulErrorHandler(const std::string &s);
 
@@ -115,7 +68,8 @@ public:
 
     boost::asio::io_service &ioService;
     boost::asio::ip::tcp::socket socket;
-    boost::asio::streambuf inputBuf;
+    RedisParser redisParser;
+    boost::array<char, 4096> buf;
     size_t subscribeSeq;
 
     typedef std::pair<size_t, boost::function<void(const std::string &s)> > MsgHandlerType;
@@ -137,16 +91,6 @@ public:
 
     boost::function<void(const std::string &)> errorHandler;
 };
-
-namespace boost {
-namespace asio {
-  template <> struct is_match_condition<RedisClientImpl::MatchSize>
-    : public boost::true_type {};
-} // namespace asio
-} // namespace boost
-
-
-/********************** RedisClient **********************************/
 
 RedisClient::RedisClient(boost::asio::io_service &ioService)
 {
@@ -240,7 +184,7 @@ void RedisClient::command(const std::string &cmd, const std::string &arg1,
     items[2] = arg2;
 
     pimpl->socket.get_io_service().post(
-                boost::bind(&RedisClientImpl::doCommand, pimpl.get(), items, handler) );
+                boost::bind(&RedisClientImpl::doCommand, pimpl, items, handler) );
 }
 
 void RedisClient::command(const std::string &cmd, const std::string &arg1,
@@ -339,6 +283,20 @@ void RedisClient::command(const std::string &cmd, const std::string &arg1,
                 boost::bind(&RedisClientImpl::doCommand, pimpl.get(), items, handler) );
 }
 
+void RedisClient::command(const std::string &cmd, const std::list<std::string> &args,
+                          const boost::function<void(const RedisValue &)> &handler)
+{
+    checkState();
+
+    std::vector<std::string> items(1);
+    items[0] = cmd;
+
+    items.reserve(1 + args.size());
+
+    std::copy(args.begin(), args.end(), std::back_inserter(items));
+    pimpl->socket.get_io_service().post(
+                boost::bind(&RedisClientImpl::doCommand, pimpl.get(), items, handler) );
+}
 
 RedisClient::Handle RedisClient::subscribe(
         const std::string &channel,
@@ -533,21 +491,24 @@ RedisClientImpl::~RedisClientImpl()
 
 void RedisClientImpl::processMessage()
 {
-    readResponse(boost::bind(&RedisClientImpl::doProcessMessage, shared_from_this(), _1));
+    using boost::system::error_code;
+
+    socket.async_read_some(boost::asio::buffer(buf),
+                           boost::bind(&RedisClientImpl::asyncRead,
+                                       shared_from_this(), _1, _2));
 }
 
 void RedisClientImpl::doProcessMessage(const RedisValue &v)
 {
     if( state == RedisClientImpl::Subscribed )
     {
-        std::list<RedisValue> result = v.toList();
+        std::vector<RedisValue> result = v.toArray();
 
         if( result.size() == 3 )
         {
-            std::list<RedisValue>::iterator it = result.begin();
-            const RedisValue &command = *it++;
-            const RedisValue &queue = *it++;
-            const RedisValue &value = *it++;
+            const RedisValue &command = result[0];
+            const RedisValue &queue = result[1];
+            const RedisValue &value = result[2];
 
             const std::string &cmd = command.toString();
 
@@ -610,9 +571,6 @@ void RedisClientImpl::doProcessMessage(const RedisValue &v)
             return;
         }
     }
-
-    socket.get_io_service().post(
-                boost::bind(&RedisClientImpl::processMessage, shared_from_this()) );
 }
 
 void RedisClientImpl::asyncWrite(const boost::system::error_code &ec, const size_t)
@@ -687,233 +645,38 @@ void RedisClientImpl::doCommand(const std::vector<std::string> &command,
     }
 }
 
-void RedisClientImpl::asyncRead(const boost::function<void(const RedisValue &)> &handler,
-                                const boost::system::error_code &ec, const size_t)
+void RedisClientImpl::asyncRead(const boost::system::error_code &ec, const size_t size)
 {
-    if( ec )
+    if( ec || size == 0 )
     {
         errorHandler(ec.message());
         return;
     }
 
-    std::istream stream( &inputBuf );
-    char byte = 0;
-    stream >> byte;
-
-    switch(byte)
+    for(size_t pos = 0; pos < size;)
     {
-    case '-': // Error
-        readString(boost::bind(&RedisClientImpl::onRedisError,
-                               shared_from_this(), _1));
-        break;
-    case '+': // String status
-        readString(handler);
-        break;
-    case ':':
-        readInt(handler);
-        break;
-    case '$':
-        readBulkItem(handler);
-        break;
-    case '*':
-        readMultiBulkItem(handler);
-        break;
-    default:
-        errorHandler("Protocol error");
-        break;
-    }
-}
+        std::pair<size_t, RedisParser::ParseResult> result = redisParser.parse(buf.data() + pos, size - pos);
 
-void RedisClientImpl::readResponse(const boost::function<void(const RedisValue &)> &handler)
-{
-    using boost::system::error_code;
-    boost::asio::async_read_until(socket, inputBuf,
-                                  RedisClientImpl::MatchSize(1),
-                                  boost::bind(&RedisClientImpl::asyncRead,
-                                              shared_from_this(), handler, _1, _2));
-}
+        if( result.second == RedisParser::Completed )
+        {
+            doProcessMessage(redisParser.result());
+        }
+        else if( result.second == RedisParser::Incompleted )
+        {
+            processMessage();
+            return;
+        }
+        else
+        {
+            errorHandler("Parser error");
+            return;
+        }
 
-void RedisClientImpl::asyncReadInt(const boost::function<void(const RedisValue &)> &handler,
-                                   const boost::system::error_code &ec, const size_t)
-{
-    if( ec )
-    {
-        errorHandler(ec.message());
-        return;
+        pos += result.first;
     }
 
-    std::istream stream( &inputBuf );
-    std::string result;
+    processMessage();
 
-    std::getline(stream, result);
-
-    // remove \r\n
-    if( result.empty() == false )
-        result.resize( result.size() - 1 );
-    handler(atoi(result.c_str()));
-}
-
-void RedisClientImpl::readInt(const boost::function<void(const RedisValue &)> &handler)
-{
-    using boost::system::error_code;
-    boost::asio::async_read_until(socket, inputBuf, "\r\n",
-                                  boost::bind(&RedisClientImpl::asyncReadInt,
-                                              shared_from_this(), handler, _1, _2));
-}
-
-void RedisClientImpl::asyncReadString(const boost::function<void(const RedisValue &)> &handler,
-                                      const boost::system::error_code &ec, const size_t)
-{
-    if( ec )
-    {
-        errorHandler(ec.message());
-        return;
-    }
-
-    std::istream stream( &inputBuf );
-    std::string result;
-
-    std::getline(stream, result);
-
-    // remove \r\n
-    if( result.empty() == false )
-        result.resize( result.size() - 1 );
-
-    handler(result);
-}
-
-void RedisClientImpl::readString(const boost::function<void(const RedisValue &)> &handler)
-{
-    using boost::system::error_code;
-    boost::asio::async_read_until(socket, inputBuf, "\r\n",
-                                  boost::bind(&RedisClientImpl::asyncReadString,
-                                              shared_from_this(), handler, _1, _2));
-}
-
-void RedisClientImpl::asyncReadBulkItem(const boost::function<void(const RedisValue &)> &handler,
-                                        const boost::system::error_code &ec, const size_t size)
-{
-    if( ec )
-    {
-        errorHandler(ec.message());
-        return;
-    }
-
-    std::istream stream( &inputBuf );
-    std::string result(size, '\0');
-    char crlf[2];
-
-    stream.read(&result[0], size);
-    stream.read(crlf, sizeof(crlf));
-
-    handler(result);
-}
-
-void RedisClientImpl::asyncReadBulkItemIntHandler(
-        const boost::function<void(const RedisValue &)> &handler,
-        const RedisValue &v)
-{
-    int size = v.toInt();
-    if( size <= 0  )
-    {
-        handler(RedisValue());
-        return;
-    }
-
-    boost::asio::async_read_until(socket, inputBuf, RedisClientImpl::MatchSize(size),
-                                  boost::bind(&RedisClientImpl::asyncReadBulkItem,
-                                              shared_from_this(), handler, _1, size));
-}
-
-void RedisClientImpl::readBulkItem(const boost::function<void(const RedisValue &)> &handler)
-{
-    readInt(boost::bind(&RedisClientImpl::asyncReadBulkItemIntHandler,
-                        shared_from_this(), handler, _1));
-}
-
-void RedisClientImpl::readMultiBulkItemIntHandler(
-        const boost::function<void(const RedisValue &)> &handler,
-        const RedisValue &v)
-{
-    int size = v.toInt();
-    if( size <= 0 )
-    {
-        handler(RedisValue());
-    }
-    else
-    {
-        readMultiBulkItemHandler(size, std::list<RedisValue>(), handler);
-    }
-}
-
-void RedisClientImpl::readMultiBulkItem(const boost::function<void(const RedisValue &)> &handler)
-{
-    readInt(boost::bind(&RedisClientImpl::readMultiBulkItemIntHandler,
-                        shared_from_this(), handler, _1));
-}
-
-void RedisClientImpl::recursionStep(int recursion,
-                                    const std::list<RedisValue> &result,
-                                    const boost::function<void(const RedisValue &)> &handler,
-                                    const RedisValue &v)
-{
-    assert( recursion >= 0 );
-    
-    std::list<RedisValue> copy(result);
-    copy.push_back(v);
-    readMultiBulkItemHandler(recursion-1, copy, handler); // next call
-}
-
-void RedisClientImpl::asyncReadMultiBulkItemHandler(
-        int recursion, const std::list<RedisValue> &result,
-        const boost::function<void(const RedisValue &)> &handler,
-        const boost::system::error_code &ec, size_t)
-{
-    if( ec )
-    {
-        errorHandler(ec.message());
-        return;
-    }
-
-    boost::function<void(const RedisValue &)> readHandler =
-            boost::bind(&RedisClientImpl::recursionStep,
-                        shared_from_this(), recursion, result, handler, _1);
-
-    std::istream stream( &inputBuf );
-    char byte = 0;
-    stream >> byte;
-
-    switch(byte)
-    {
-    case ':':
-        readInt(readHandler);
-        break;
-    case '$':
-        readBulkItem(readHandler);
-        break;
-    default:
-        errorHandler(ec.message());
-        break;
-    }
-}
-
-void RedisClientImpl::readMultiBulkItemHandler(int recursion, const std::list<RedisValue> &result,
-                                               const boost::function<void(const RedisValue &)> &handler)
-{
-    using boost::system::error_code;
-
-    if( recursion == 0 )
-    {
-        handler(RedisValue(result));
-    }
-    else
-    {
-        boost::asio::async_read_until(
-                    socket, inputBuf, RedisClientImpl::MatchSize(1),
-                    boost::bind(&RedisClientImpl::asyncReadMultiBulkItemHandler,
-                                shared_from_this(), recursion, result, handler,
-                                _1, _2));
-    }
 }
 
 void RedisClientImpl::onRedisError(const RedisValue &v)

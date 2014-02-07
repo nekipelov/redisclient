@@ -8,25 +8,29 @@
 
 #include <boost/variant.hpp>
 #include <string>
-#include <list>
+#include <vector>
 
 class RedisValue {
 public:
-    struct NullTag {};
-
     RedisValue();
     RedisValue(int i);
+    RedisValue(const char *s);
     RedisValue(const std::string &s);
-    RedisValue(const std::list<RedisValue> &list);
+    RedisValue(const std::vector<RedisValue> &array);
 
-    std::list<RedisValue> toList() const;
+    std::vector<RedisValue> toArray() const;
     std::string toString() const;
     int toInt() const;
+
+    std::string inspect() const;
 
     bool isNull() const;
     bool isInt() const;
     bool isString() const;
-    bool isList() const;
+    bool isArray() const;
+
+    bool operator == (const RedisValue &rhs) const;
+    bool operator != (const RedisValue &rhs) const;
 
 protected:
     template<typename T>
@@ -36,7 +40,14 @@ protected:
     bool typeEq() const;
 
 private:
-    boost::variant<NullTag, int, std::string, std::list<RedisValue> > value;
+    struct NullTag {
+        bool operator == (const NullTag &) const {
+            return true;
+        }
+    };
+
+
+    boost::variant<NullTag, int, std::string, std::vector<RedisValue> > value;
 };
 
 

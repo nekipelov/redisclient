@@ -73,6 +73,8 @@ public:
                  const std::string &arg6, const std::string &arg7,
                  const boost::function<void(const RedisValue &)> &handler = &dummyHandler);
 
+    void command(const std::string &cmd, const std::list<std::string> &args,
+                 const boost::function<void(const RedisValue &)> &handler = &dummyHandler);
 
     Handle subscribe(const std::string &channel,
                      const boost::function<void(const std::string &msg)> &msgHandler,
