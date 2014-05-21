@@ -1,0 +1,11 @@
+language: cpp
+
+compiler:
+  - gcc
+  - clang
+  
+before_script:
+  - sudo apt-get install -qq libboost-dev
+  - sudo apt-get install -qq libboost-test-dev 
+
+script: make && make test
