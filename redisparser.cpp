@@ -112,8 +112,6 @@ std::pair<size_t, RedisParser::ParseResult> RedisParser::parseChunk(const char *
     for(; i < size; ++i)
     {
         char c = ptr[i];
-        
-        std::cerr << "char: " << c << ", state: " << state << std::endl;
 
         switch(state)
         {

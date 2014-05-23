@@ -23,7 +23,7 @@ int main(int, char **)
         redis.command("GET", redisKey, [&](const RedisValue &v) {
             std::cerr << "GET: " << v.toString() << std::endl;
 
-            redis.command("DEL", redisKey, [&](const RedisValue &v) {
+            redis.command("DEL", redisKey, [&](const RedisValue &) {
                 ioService.stop();
             });
         });

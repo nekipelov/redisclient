@@ -3,7 +3,7 @@ HDRS = redisclient.h redisvalie.h redisparser.h
 OBJS = $(SRCS:.cpp=.o)
 LIBS = -pthread -lboost_system
 LDFLAGS = -g 
-CXXFLAGS = -g -O2 -std=c++11 -Wall
+CXXFLAGS = -g -O2 -std=c++0x -Wall -Wextra
 
 all: examples
 examples: example1 example2 example3 example4 parsertest

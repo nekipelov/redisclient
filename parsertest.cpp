@@ -4,6 +4,7 @@
 #include "redisparser.h"
 
 #define BOOST_TEST_MAIN
+#define BOOST_TEST_DYN_LINK
 #define BOOST_TEST_MODULE test_RedisParser
 
 #include <boost/test/unit_test.hpp>

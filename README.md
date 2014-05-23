@@ -1,6 +1,8 @@
 redisclient
 ===========
 
+Build status: [![Build Status](https://travis-ci.org/nekipelov/redisclient.svg?branch=master)](https://travis-ci.org/nekipelov/redisclient)
+
 Boost.asio based Redis-client library. Simple but powerfull.
 
 
