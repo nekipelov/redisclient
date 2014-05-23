@@ -5,7 +5,6 @@ compiler:
   - clang
   
 before_script:
-  - sudo apt-get install -qq libboost-dev
-  - sudo apt-get install -qq libboost-test-dev 
+  - sudo apt-get install -qq libboost-dev libboost-test-dev libboost-system-dev
 
 script: make && make test
