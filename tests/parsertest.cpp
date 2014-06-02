@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "redisparser.h"
+#include "../src/redisparser.h"
 
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
