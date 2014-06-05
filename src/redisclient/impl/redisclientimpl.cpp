@@ -131,8 +131,8 @@ void RedisClientImpl::asyncWrite(const boost::system::error_code &ec, const size
         const QueueItem &item = queue.front();
         
         boost::asio::async_write(socket,
-								 boost::asio::buffer(item.buff->data(), item.buff->size()),
-								 boost::bind(&RedisClientImpl::asyncWrite, this, _1, _2));
+                                 boost::asio::buffer(item.buff->data(), item.buff->size()),
+                                 boost::bind(&RedisClientImpl::asyncWrite, this, _1, _2));
     }
 }
 
@@ -141,7 +141,7 @@ void RedisClientImpl::handleAsyncConnect(const boost::system::error_code &ec,
 {
     if( !ec )
     {
-		socket.set_option(boost::asio::ip::tcp::no_delay(true));
+        socket.set_option(boost::asio::ip::tcp::no_delay(true));
         state = RedisClientImpl::Connected;
         processMessage();
     }
@@ -152,7 +152,7 @@ void RedisClientImpl::handleAsyncConnect(const boost::system::error_code &ec,
 void RedisClientImpl::doCommand(const std::vector<std::string> &command,
                                 const boost::function<void(const RedisValue &)> &handler)
 {
-	
+    
     using boost::system::error_code;
     static const char crlf[] = {'\r', '\n'};
 
@@ -178,9 +178,9 @@ void RedisClientImpl::doCommand(const std::vector<std::string> &command,
 
     if( queue.size() == 1 )
     {
-		boost::asio::async_write(socket, 
-							     boost::asio::buffer(item.buff->data(), item.buff->size()),
-							     boost::bind(&RedisClientImpl::asyncWrite, this, _1, _2));
+        boost::asio::async_write(socket, 
+                                 boost::asio::buffer(item.buff->data(), item.buff->size()),
+                                 boost::bind(&RedisClientImpl::asyncWrite, this, _1, _2));
     }
 }
 
