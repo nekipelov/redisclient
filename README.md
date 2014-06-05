@@ -3,8 +3,9 @@ redisclient
 
 Build status: [![Build Status](https://travis-ci.org/nekipelov/redisclient.svg?branch=master)](https://travis-ci.org/nekipelov/redisclient)
 
-Boost.asio based Redis-client library. Simple but powerfull.
+Current version: 0.2.0
 
+Boost.asio based Redis-client header-only library. Simple but powerfull.
 
 Get/set example:
 
@@ -83,3 +84,7 @@ Publish/subscribe example:
     
         return 0;
     }
+
+Also you can build the library like a shared library. Just use
+ -DREDIS_CLIENT_DYNLIB and -DREDIS_CLIENT_BUILD to build redisclient
+and -DREDIS_CLIENT_DYNLIB to build your project.
