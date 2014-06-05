@@ -2,15 +2,18 @@
 #include <boost/format.hpp>
 #include <boost/crc.hpp>  // for boost::crc_32_type
 
-#include "redisclient.h"
+#include <redisclient/redisclient.h>
+
+
+#include <boost/asio/version.hpp>
 
 static const std::string channelName = "unique-redis-channel-name-example";
 
 int main(int, char **)
 {
-    const char *address = "redis-dev-1";
+    const char *address = "127.0.0.1";
     const int port = 6379;
-
+    
     boost::asio::io_service ioService;
     RedisClient publisher(ioService);
     RedisClient subscriber(ioService);
@@ -35,8 +38,11 @@ int main(int, char **)
         ioService.stop();
     });
 
+	ioService.poll();
+	
     size_t size = 200000;
     std::string msg;
+
 
     for(size_t i = 0; i  < size; ++i)
         msg += (boost::format("Hello! Message number %1%") % i).str();

@@ -1,13 +1,13 @@
 LIBS = -pthread -lboost_system -lboost_unit_test_framework
 LDFLAGS = -g 
-CXXFLAGS = -g -Wall -Wextra
+CXXFLAGS = -g -Wall -Wextra -I../src
 
 all: parsertest
 parsertest: parsertest.o redisparser.o redisvalue.o
 	$(CXX) $^ -o $@  $(LDFLAGS) $(LIBS) -lboost_unit_test_framework
-redisparser.o: ../src/redisparser.cpp ../src/redisvalue.h
+redisparser.o: ../src/redisclient/impl/redisparser.cpp ../src/redisclient/redisvalue.h
 	$(CXX) $(CXXFLAGS) -c $< -o $@
-redisvalue.o: ../src/redisvalue.cpp ../src/redisvalue.h
+redisvalue.o: ../src/redisclient/impl/redisvalue.cpp ../src/redisclient/redisvalue.h
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 test: parsertest

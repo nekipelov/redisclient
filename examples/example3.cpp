@@ -1,6 +1,6 @@
 #include <boost/bind.hpp>
 
-#include "redisclient.h"
+#include <redisclient/redisclient.h>
 
 static const std::string channelName = "unique-redis-channel-name-example";
 

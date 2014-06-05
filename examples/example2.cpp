@@ -1,4 +1,4 @@
-#include "redisclient.h"
+#include <redisclient/redisclient.h>
 
 static const std::string redisKey = "unique-redis-key-example";
 static const std::string redisValue = "unique-redis-value";

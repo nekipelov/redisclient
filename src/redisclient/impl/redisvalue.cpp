@@ -3,8 +3,11 @@
  * License: MIT
  */
 
+#ifndef REDISCLIENT_REDISVALUE_CPP
+#define REDISCLIENT_REDISVALUE_CPP
+
 #include <boost/lexical_cast.hpp>
-#include "redisvalue.h"
+#include "../redisvalue.h"
 
 RedisValue::RedisValue()
     : value(NullTag())
@@ -116,4 +119,4 @@ bool RedisValue::operator != (const RedisValue &rhs) const
     return !(value == rhs.value);
 }
 
-
+#endif // REDISCLIENT_REDISVALUE_CPP

@@ -1,7 +1,6 @@
-LIBNAME = redisclient
-LIBS = -lboost_system -l$(LIBNAME)
+LIBS = -lboost_system
 LDFLAGS = -g -L.. -pthread
-CXXFLAGS = -g -O2 -std=c++0x -Wall -Wextra -I../src
+CXXFLAGS = -g -O2 -std=c++11 -Wall -Wextra -I../src
 
 all: examples
 examples: example1 example2 example3 example4
@@ -18,7 +17,7 @@ example3: $(OBJS) example3.o
 example4: $(OBJS) example4.o
 	$(CXX) $^ -o $@  $(LDFLAGS) $(LIBS)
 
-.cpp.o:
+%.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 	
 clean:

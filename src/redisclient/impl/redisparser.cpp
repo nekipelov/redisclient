@@ -1,13 +1,14 @@
+/*
+ * Copyright (C) Alex Nekipelov (alex@nekipelov.net)
+ * License: MIT
+ */
+
+#ifndef REDISCLIENT_REDISPARSER_CPP
+#define REDISCLIENT_REDISPARSER_CPP
+
 #include <sstream>
 
-#include "redisparser.h"
-
-static const char stringReply = '+';
-static const char errorReply = '-';
-static const char integerReply = ':';
-static const char bulkReply = '$';
-static const char arrayReply = '*';
-static const char crlf[] = {'\r', '\n'};
+#include "../redisparser.h"
 
 RedisParser::RedisParser()
     : state(Start), bulkSize(0)
@@ -442,3 +443,5 @@ RedisValue RedisParser::result()
         return RedisValue();
     }
 }
+
+#endif // REDISCLIENT_REDISPARSER_CPP
