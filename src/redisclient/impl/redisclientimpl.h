@@ -28,7 +28,7 @@ public:
 
     REDIS_CLIENT_DECL void handleAsyncConnect(
             const boost::system::error_code &ec,
-            const boost::function<void(const boost::system::error_code &)> &handler);
+            const boost::function<void(bool, const std::string &)> &handler);
 
     REDIS_CLIENT_DECL void doCommand(
             const std::vector<std::string> &command,

@@ -3,7 +3,7 @@ redisclient
 
 Build status: [![Build Status](https://travis-ci.org/nekipelov/redisclient.svg?branch=master)](https://travis-ci.org/nekipelov/redisclient)
 
-Current version: 0.2.0
+Current version: 0.3.0
 
 Boost.asio based Redis-client header-only library. Simple but powerfull.
 

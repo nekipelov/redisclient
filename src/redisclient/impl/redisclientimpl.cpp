@@ -137,7 +137,7 @@ void RedisClientImpl::asyncWrite(const boost::system::error_code &ec, const size
 }
 
 void RedisClientImpl::handleAsyncConnect(const boost::system::error_code &ec,
-                                         const boost::function<void(const boost::system::error_code &)> &handler)
+                                         const boost::function<void(bool, const std::string &)> &handler)
 {
     if( !ec )
     {
@@ -145,8 +145,10 @@ void RedisClientImpl::handleAsyncConnect(const boost::system::error_code &ec,
         state = RedisClientImpl::Connected;
         processMessage();
     }
-
-    handler(ec);
+    else
+    {
+        handler(false, ec.message());
+    }
 }
 
 void RedisClientImpl::doCommand(const std::vector<std::string> &command,

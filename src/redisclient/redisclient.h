@@ -31,12 +31,19 @@ public:
     REDIS_CLIENT_DECL ~RedisClient();
 
     // Connect to redis server, blocking call.
-    REDIS_CLIENT_DECL bool connect(const char *address, int port);
+    REDIS_CLIENT_DECL bool connect(const boost::asio::ip::address &address,
+                                   unsigned short port);
+
+    // Connect to redis server, asynchronous call.
+    REDIS_CLIENT_DECL void asyncConnect(
+            const boost::asio::ip::address &address,
+            unsigned short port,
+            const boost::function<void(bool, const std::string &)> &handler);
 
     // Connect to redis server, asynchronous call.
     REDIS_CLIENT_DECL void asyncConnect(
             const boost::asio::ip::tcp::endpoint &endpoint,
-            const boost::function<void(const boost::system::error_code &)> &handler);
+            const boost::function<void(bool, const std::string &)> &handler);
 
     // Set custom error handler. 
     REDIS_CLIENT_DECL void installErrorHandler(
@@ -125,7 +132,7 @@ public:
     REDIS_CLIENT_DECL static void dummyHandler(const RedisValue &) {}
 
 protected:
-    REDIS_CLIENT_DECL void checkState() const;
+    REDIS_CLIENT_DECL bool stateValid() const;
 
 private:
     RedisClientImpl impl;

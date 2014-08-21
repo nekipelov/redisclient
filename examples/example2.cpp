@@ -1,3 +1,5 @@
+#include <string>
+#include <boost/asio/ip/address.hpp>
 #include <redisclient/redisclient.h>
 
 static const std::string redisKey = "unique-redis-key-example";
@@ -5,8 +7,8 @@ static const std::string redisValue = "unique-redis-value";
 
 int main(int, char **)
 {
-    const char *address = "127.0.0.1";
-    const int port = 6379;
+    boost::asio::ip::address address = boost::asio::ip::address::from_string("127.0.0.1");
+    const unsigned short port = 6379;
 
     boost::asio::io_service ioService;
     RedisClient redis(ioService);

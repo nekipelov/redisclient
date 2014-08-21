@@ -19,42 +19,41 @@ RedisClient::~RedisClient()
 {
 }
 
-bool RedisClient::connect(const char *address, int port)
+bool RedisClient::connect(const boost::asio::ip::address &address,
+                          unsigned short port)
 {
-    boost::asio::ip::tcp::resolver resolver(impl.strand.get_io_service());
-    boost::asio::ip::tcp::resolver::query query(address,
-                                                boost::lexical_cast<std::string>(port));
+    boost::asio::ip::tcp::endpoint endpoint(address, port);
+    boost::system::error_code ec;
 
-    boost::asio::ip::tcp::resolver::iterator it = resolver.resolve(query);
+    impl.socket.connect(endpoint, ec);
 
-    while(it != boost::asio::ip::tcp::resolver::iterator())
+    if( !ec )
     {
-        boost::asio::ip::tcp::endpoint endpoint = *it;
-        boost::system::error_code ec;
-
-        impl.socket.connect(endpoint, ec);
-
-        if( !ec )
-        {
-            impl.state = RedisClientImpl::Connected;
-            impl.processMessage();
-            return true;
-        }
-        else
-        {
-            ++it;
-        }
+        impl.state = RedisClientImpl::Connected;
+        impl.processMessage();
+        return true;
     }
+    else
+    {
+        return false;
+    }
+}
 
-    return false;
+void RedisClient::asyncConnect(const boost::asio::ip::address &address,
+                               unsigned short port,
+                               const boost::function<void(bool, const std::string &)> &handler)
+{
+    boost::asio::ip::tcp::endpoint endpoint(address, port);
+    asyncConnect(endpoint, handler);
 }
 
 void RedisClient::asyncConnect(const boost::asio::ip::tcp::endpoint &endpoint,
-                               const boost::function<void(const boost::system::error_code &)> &handler)
+                               const boost::function<void(bool, const std::string &)> &handler)
 {
     impl.socket.async_connect(endpoint, boost::bind(&RedisClientImpl::handleAsyncConnect,
                                                     &impl, _1, handler));
 }
+
 
 void RedisClient::installErrorHandler(
         const boost::function<void(const std::string &)> &handler)
@@ -64,53 +63,57 @@ void RedisClient::installErrorHandler(
 
 void RedisClient::command(const std::string &s, const boost::function<void(const RedisValue &)> &handler)
 {
-    checkState();
+    if(stateValid())
+    {
+        std::vector<std::string> items(1);
+        items[0] = s;
 
-    std::vector<std::string> items(1);
-    items[0] = s;
-
-    impl.post(boost::bind(&RedisClientImpl::doCommand, &impl, items, handler));
+        impl.post(boost::bind(&RedisClientImpl::doCommand, &impl, items, handler));
+    }
 }
 
 void RedisClient::command(const std::string &cmd, const std::string &arg1,
                           const boost::function<void(const RedisValue &)> &handler)
 {
-    checkState();
+    if(stateValid())
+    {
+        std::vector<std::string> items(2);
+        items[0] = cmd;
+        items[1] = arg1;
 
-    std::vector<std::string> items(2);
-    items[0] = cmd;
-    items[1] = arg1;
-
-    impl.post(boost::bind(&RedisClientImpl::doCommand, &impl, items, handler));
+        impl.post(boost::bind(&RedisClientImpl::doCommand, &impl, items, handler));
+    }
 }
 
 void RedisClient::command(const std::string &cmd, const std::string &arg1,
                           const std::string &arg2,
                           const boost::function<void(const RedisValue &)> &handler)
 {
-    checkState();
+    if(stateValid())
+    {
+        std::vector<std::string> items(3);
+        items[0] = cmd;
+        items[1] = arg1;
+        items[2] = arg2;
 
-    std::vector<std::string> items(3);
-    items[0] = cmd;
-    items[1] = arg1;
-    items[2] = arg2;
-
-    impl.post(boost::bind(&RedisClientImpl::doCommand, &impl, items, handler));
+        impl.post(boost::bind(&RedisClientImpl::doCommand, &impl, items, handler));
+    }
 }
 
 void RedisClient::command(const std::string &cmd, const std::string &arg1,
                           const std::string &arg2, const std::string &arg3,
                           const boost::function<void(const RedisValue &)> &handler)
 {
-    checkState();
+    if(stateValid())
+    {
+        std::vector<std::string> items(4);
+        items[0] = cmd;
+        items[1] = arg1;
+        items[2] = arg2;
+        items[3] = arg3;
 
-    std::vector<std::string> items(4);
-    items[0] = cmd;
-    items[1] = arg1;
-    items[2] = arg2;
-    items[3] = arg3;
-
-    impl.post(boost::bind(&RedisClientImpl::doCommand, &impl, items, handler));
+        impl.post(boost::bind(&RedisClientImpl::doCommand, &impl, items, handler));
+    }
 }
 
 void RedisClient::command(const std::string &cmd, const std::string &arg1,
@@ -118,16 +121,17 @@ void RedisClient::command(const std::string &cmd, const std::string &arg1,
                           const std::string &arg4,
                           const boost::function<void(const RedisValue &)> &handler)
 {
-    checkState();
+    if(stateValid())
+    {
+        std::vector<std::string> items(5);
+        items[0] = cmd;
+        items[1] = arg1;
+        items[2] = arg2;
+        items[3] = arg3;
+        items[4] = arg4;
 
-    std::vector<std::string> items(5);
-    items[0] = cmd;
-    items[1] = arg1;
-    items[2] = arg2;
-    items[3] = arg3;
-    items[4] = arg4;
-
-    impl.post(boost::bind(&RedisClientImpl::doCommand, &impl, items, handler));
+        impl.post(boost::bind(&RedisClientImpl::doCommand, &impl, items, handler));
+    }
 }
 
 void RedisClient::command(const std::string &cmd, const std::string &arg1,
@@ -135,17 +139,18 @@ void RedisClient::command(const std::string &cmd, const std::string &arg1,
                           const std::string &arg4, const std::string &arg5,
                           const boost::function<void(const RedisValue &)> &handler)
 {
-    checkState();
+    if(stateValid())
+    {
+        std::vector<std::string> items(6);
+        items[0] = cmd;
+        items[1] = arg1;
+        items[2] = arg2;
+        items[3] = arg3;
+        items[4] = arg4;
+        items[5] = arg5;
 
-    std::vector<std::string> items(6);
-    items[0] = cmd;
-    items[1] = arg1;
-    items[2] = arg2;
-    items[3] = arg3;
-    items[4] = arg4;
-    items[5] = arg5;
-
-    impl.post(boost::bind(&RedisClientImpl::doCommand, &impl, items, handler));
+        impl.post(boost::bind(&RedisClientImpl::doCommand, &impl, items, handler));
+    }
 }
 
 void RedisClient::command(const std::string &cmd, const std::string &arg1,
@@ -154,18 +159,19 @@ void RedisClient::command(const std::string &cmd, const std::string &arg1,
                           const std::string &arg6,
                           const boost::function<void(const RedisValue &)> &handler)
 {
-    checkState();
+    if(stateValid())
+    {
+        std::vector<std::string> items(7);
+        items[0] = cmd;
+        items[1] = arg1;
+        items[2] = arg2;
+        items[3] = arg3;
+        items[4] = arg4;
+        items[5] = arg5;
+        items[6] = arg6;
 
-    std::vector<std::string> items(7);
-    items[0] = cmd;
-    items[1] = arg1;
-    items[2] = arg2;
-    items[3] = arg3;
-    items[4] = arg4;
-    items[5] = arg5;
-    items[6] = arg6;
-
-    impl.post(boost::bind(&RedisClientImpl::doCommand, &impl, items, handler));
+        impl.post(boost::bind(&RedisClientImpl::doCommand, &impl, items, handler));
+    }
 }
 
 void RedisClient::command(const std::string &cmd, const std::string &arg1,
@@ -174,33 +180,35 @@ void RedisClient::command(const std::string &cmd, const std::string &arg1,
                           const std::string &arg6, const std::string &arg7,
                           const boost::function<void(const RedisValue &)> &handler)
 {
-    checkState();
+    if(stateValid())
+    {
+        std::vector<std::string> items(8);
+        items[0] = cmd;
+        items[1] = arg1;
+        items[2] = arg2;
+        items[3] = arg3;
+        items[4] = arg4;
+        items[5] = arg5;
+        items[6] = arg6;
+        items[7] = arg7;
 
-    std::vector<std::string> items(8);
-    items[0] = cmd;
-    items[1] = arg1;
-    items[2] = arg2;
-    items[3] = arg3;
-    items[4] = arg4;
-    items[5] = arg5;
-    items[6] = arg6;
-    items[7] = arg7;
-
-    impl.post(boost::bind(&RedisClientImpl::doCommand, &impl, items, handler));
+        impl.post(boost::bind(&RedisClientImpl::doCommand, &impl, items, handler));
+    }
 }
 
 void RedisClient::command(const std::string &cmd, const std::list<std::string> &args,
                           const boost::function<void(const RedisValue &)> &handler)
 {
-    checkState();
+    if(stateValid())
+    {
+        std::vector<std::string> items(1);
+        items[0] = cmd;
 
-    std::vector<std::string> items(1);
-    items[0] = cmd;
+        items.reserve(1 + args.size());
 
-    items.reserve(1 + args.size());
-
-    std::copy(args.begin(), args.end(), std::back_inserter(items));
-    impl.post(boost::bind(&RedisClientImpl::doCommand, &impl, items, handler));
+        std::copy(args.begin(), args.end(), std::back_inserter(items));
+        impl.post(boost::bind(&RedisClientImpl::doCommand, &impl, items, handler));
+    }
 }
 
 RedisClient::Handle RedisClient::subscribe(
@@ -356,7 +364,7 @@ void RedisClient::publish(const std::string &channel, const std::string &msg,
     }
 }
 
-void RedisClient::checkState() const
+bool RedisClient::stateValid() const
 {
     assert( impl.state == RedisClientImpl::Connected );
 
@@ -368,7 +376,10 @@ void RedisClient::checkState() const
            << impl.state;
 
         impl.errorHandler(ss.str());
+        return false;
     }
+
+    return true;
 }
 
 #endif // REDISCLIENT_REDISCLIENT_CPP

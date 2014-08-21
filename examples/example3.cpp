@@ -1,4 +1,5 @@
 #include <boost/bind.hpp>
+#include <boost/asio/ip/address.hpp>
 
 #include <redisclient/redisclient.h>
 
@@ -6,8 +7,8 @@ static const std::string channelName = "unique-redis-channel-name-example";
 
 int main(int, char **)
 {
-    const char *address = "127.0.0.1";
-    const int port = 6379;
+    boost::asio::ip::address address = boost::asio::ip::address::from_string("127.0.0.1");
+    const unsigned short port = 6379;
 
     boost::asio::io_service ioService;
     RedisClient publisher(ioService);
