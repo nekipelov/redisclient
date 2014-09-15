@@ -78,7 +78,7 @@ void RedisClientImpl::doProcessMessage(const RedisValue &v)
             {
                 std::stringstream ss;
 
-                ss << "RedisClient::doProcessMessage invalid command: "
+                ss << "[RedisClient] invalid command: "
                    << command.toString();
 
                 errorHandler(ss.str());
@@ -87,7 +87,7 @@ void RedisClientImpl::doProcessMessage(const RedisValue &v)
         }
         else
         {
-            errorHandler("Protocol error");
+            errorHandler("[RedisClient] Protocol error");
             return;
         }
     }
@@ -102,8 +102,8 @@ void RedisClientImpl::doProcessMessage(const RedisValue &v)
         {
             std::stringstream ss;
 
-            ss << "RedisClient::doProcessMessage have a incoming "
-                  "message, but handlers is empty.";
+            ss << "[RedisClient] unexpected message: "
+               <<  v.inspect();
 
             errorHandler(ss.str());
             return;
@@ -209,7 +209,7 @@ void RedisClientImpl::asyncRead(const boost::system::error_code &ec, const size_
         }
         else
         {
-            errorHandler("Parser error");
+            errorHandler("[RedisClient] Parser error");
             return;
         }
 
