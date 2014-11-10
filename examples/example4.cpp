@@ -1,3 +1,4 @@
+#include <iostream>
 #include <boost/bind.hpp>
 #include <boost/format.hpp>
 #include <boost/asio/ip/address.hpp>

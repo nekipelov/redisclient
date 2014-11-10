@@ -1,4 +1,5 @@
 #include <string>
+#include <iostream>
 #include <boost/asio/ip/address.hpp>
 #include <redisclient/redisclient.h>
 
