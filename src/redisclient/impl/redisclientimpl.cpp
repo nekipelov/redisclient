@@ -143,6 +143,7 @@ void RedisClientImpl::handleAsyncConnect(const boost::system::error_code &ec,
     {
         socket.set_option(boost::asio::ip::tcp::no_delay(true));
         state = RedisClientImpl::Connected;
+        handler(true, std::string());
         processMessage();
     }
     else
