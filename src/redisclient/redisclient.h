@@ -135,7 +135,7 @@ protected:
     REDIS_CLIENT_DECL bool stateValid() const;
 
 private:
-    RedisClientImpl impl;
+    boost::shared_ptr<RedisClientImpl> pimpl;
 };
 
 #ifdef REDIS_CLIENT_HEADER_ONLY

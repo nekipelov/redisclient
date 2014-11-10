@@ -11,6 +11,7 @@
 #include <boost/noncopyable.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/strand.hpp>
+#include <boost/enable_shared_from_this.hpp>
 
 #include <string>
 #include <vector>
@@ -21,7 +22,7 @@
 #include "../redisparser.h"
 #include "../config.h"
 
-class RedisClientImpl : public boost::noncopyable {
+class RedisClientImpl : public boost::enable_shared_from_this<RedisClientImpl> {
 public:
     REDIS_CLIENT_DECL RedisClientImpl(boost::asio::io_service &ioService);
     REDIS_CLIENT_DECL ~RedisClientImpl();
@@ -29,6 +30,8 @@ public:
     REDIS_CLIENT_DECL void handleAsyncConnect(
             const boost::system::error_code &ec,
             const boost::function<void(bool, const std::string &)> &handler);
+
+    REDIS_CLIENT_DECL void close();
 
     REDIS_CLIENT_DECL void doCommand(
             const std::vector<std::string> &command,
@@ -42,6 +45,7 @@ public:
 
     REDIS_CLIENT_DECL void onRedisError(const RedisValue &);
     REDIS_CLIENT_DECL void defaulErrorHandler(const std::string &s);
+    REDIS_CLIENT_DECL void ignoreErrorHandler(const std::string &s);
 
     REDIS_CLIENT_DECL static void append(std::vector<char> &vec, const std::string &s);
     REDIS_CLIENT_DECL static void append(std::vector<char> &vec, const char *s);
@@ -55,7 +59,8 @@ public:
     enum {
         NotConnected,
         Connected,
-        Subscribed
+        Subscribed,
+        Closed 
     } state;
 
     boost::asio::strand strand;

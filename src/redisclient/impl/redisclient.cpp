@@ -6,17 +6,19 @@
 #ifndef REDISCLIENT_REDISCLIENT_CPP
 #define REDISCLIENT_REDISCLIENT_CPP
 
+#include <boost/make_shared.hpp>
 #include "../redisclient.h"
 
 RedisClient::RedisClient(boost::asio::io_service &ioService)
-    : impl(ioService)
+    : pimpl(boost::make_shared<RedisClientImpl>(ioService))
 {
-    impl.errorHandler = boost::bind(&RedisClientImpl::defaulErrorHandler,
-                                    &impl, _1);
+    pimpl->errorHandler = boost::bind(&RedisClientImpl::defaulErrorHandler,
+                                      pimpl, _1);
 }
 
 RedisClient::~RedisClient()
 {
+    pimpl->close();
 }
 
 bool RedisClient::connect(const boost::asio::ip::address &address,
@@ -25,12 +27,12 @@ bool RedisClient::connect(const boost::asio::ip::address &address,
     boost::asio::ip::tcp::endpoint endpoint(address, port);
     boost::system::error_code ec;
 
-    impl.socket.connect(endpoint, ec);
+    pimpl->socket.connect(endpoint, ec);
 
     if( !ec )
     {
-        impl.state = RedisClientImpl::Connected;
-        impl.processMessage();
+        pimpl->state = RedisClientImpl::Connected;
+        pimpl->processMessage();
         return true;
     }
     else
@@ -50,15 +52,15 @@ void RedisClient::asyncConnect(const boost::asio::ip::address &address,
 void RedisClient::asyncConnect(const boost::asio::ip::tcp::endpoint &endpoint,
                                const boost::function<void(bool, const std::string &)> &handler)
 {
-    impl.socket.async_connect(endpoint, boost::bind(&RedisClientImpl::handleAsyncConnect,
-                                                    &impl, _1, handler));
+    pimpl->socket.async_connect(endpoint, boost::bind(&RedisClientImpl::handleAsyncConnect,
+                                                      pimpl, _1, handler));
 }
 
 
 void RedisClient::installErrorHandler(
         const boost::function<void(const std::string &)> &handler)
 {
-    impl.errorHandler = handler;
+    pimpl->errorHandler = handler;
 }
 
 void RedisClient::command(const std::string &s, const boost::function<void(const RedisValue &)> &handler)
@@ -68,7 +70,7 @@ void RedisClient::command(const std::string &s, const boost::function<void(const
         std::vector<std::string> items(1);
         items[0] = s;
 
-        impl.post(boost::bind(&RedisClientImpl::doCommand, &impl, items, handler));
+        pimpl->post(boost::bind(&RedisClientImpl::doCommand, pimpl, items, handler));
     }
 }
 
@@ -81,7 +83,7 @@ void RedisClient::command(const std::string &cmd, const std::string &arg1,
         items[0] = cmd;
         items[1] = arg1;
 
-        impl.post(boost::bind(&RedisClientImpl::doCommand, &impl, items, handler));
+        pimpl->post(boost::bind(&RedisClientImpl::doCommand, pimpl, items, handler));
     }
 }
 
@@ -96,7 +98,7 @@ void RedisClient::command(const std::string &cmd, const std::string &arg1,
         items[1] = arg1;
         items[2] = arg2;
 
-        impl.post(boost::bind(&RedisClientImpl::doCommand, &impl, items, handler));
+        pimpl->post(boost::bind(&RedisClientImpl::doCommand, pimpl, items, handler));
     }
 }
 
@@ -112,7 +114,7 @@ void RedisClient::command(const std::string &cmd, const std::string &arg1,
         items[2] = arg2;
         items[3] = arg3;
 
-        impl.post(boost::bind(&RedisClientImpl::doCommand, &impl, items, handler));
+        pimpl->post(boost::bind(&RedisClientImpl::doCommand, pimpl, items, handler));
     }
 }
 
@@ -130,7 +132,7 @@ void RedisClient::command(const std::string &cmd, const std::string &arg1,
         items[3] = arg3;
         items[4] = arg4;
 
-        impl.post(boost::bind(&RedisClientImpl::doCommand, &impl, items, handler));
+        pimpl->post(boost::bind(&RedisClientImpl::doCommand, pimpl, items, handler));
     }
 }
 
@@ -149,7 +151,7 @@ void RedisClient::command(const std::string &cmd, const std::string &arg1,
         items[4] = arg4;
         items[5] = arg5;
 
-        impl.post(boost::bind(&RedisClientImpl::doCommand, &impl, items, handler));
+        pimpl->post(boost::bind(&RedisClientImpl::doCommand, pimpl, items, handler));
     }
 }
 
@@ -170,7 +172,7 @@ void RedisClient::command(const std::string &cmd, const std::string &arg1,
         items[5] = arg5;
         items[6] = arg6;
 
-        impl.post(boost::bind(&RedisClientImpl::doCommand, &impl, items, handler));
+        pimpl->post(boost::bind(&RedisClientImpl::doCommand, pimpl, items, handler));
     }
 }
 
@@ -192,7 +194,7 @@ void RedisClient::command(const std::string &cmd, const std::string &arg1,
         items[6] = arg6;
         items[7] = arg7;
 
-        impl.post(boost::bind(&RedisClientImpl::doCommand, &impl, items, handler));
+        pimpl->post(boost::bind(&RedisClientImpl::doCommand, pimpl, items, handler));
     }
 }
 
@@ -207,7 +209,7 @@ void RedisClient::command(const std::string &cmd, const std::list<std::string> &
         items.reserve(1 + args.size());
 
         std::copy(args.begin(), args.end(), std::back_inserter(items));
-        impl.post(boost::bind(&RedisClientImpl::doCommand, &impl, items, handler));
+        pimpl->post(boost::bind(&RedisClientImpl::doCommand, pimpl, items, handler));
     }
 }
 
@@ -216,22 +218,22 @@ RedisClient::Handle RedisClient::subscribe(
         const boost::function<void(const std::string &msg)> &msgHandler,
         const boost::function<void(const RedisValue &)> &handler)
 {
-    assert( impl.state == RedisClientImpl::Connected ||
-            impl.state == RedisClientImpl::Subscribed);
+    assert( pimpl->state == RedisClientImpl::Connected ||
+            pimpl->state == RedisClientImpl::Subscribed);
 
     static std::string subscribe = "SUBSCRIBE";
 
-    if( impl.state == RedisClientImpl::Connected || impl.state == RedisClientImpl::Subscribed )
+    if( pimpl->state == RedisClientImpl::Connected || pimpl->state == RedisClientImpl::Subscribed )
     {
-        Handle handle = {impl.subscribeSeq++, channel};
+        Handle handle = {pimpl->subscribeSeq++, channel};
 
         std::vector<std::string> items(2);
         items[0] = subscribe;
         items[1] = channel;
 
-        impl.post(boost::bind(&RedisClientImpl::doCommand, &impl, items, handler));
-        impl.msgHandlers.insert(std::make_pair(channel, std::make_pair(handle.id, msgHandler)));
-        impl.state = RedisClientImpl::Subscribed;
+        pimpl->post(boost::bind(&RedisClientImpl::doCommand, pimpl, items, handler));
+        pimpl->msgHandlers.insert(std::make_pair(channel, std::make_pair(handle.id, msgHandler)));
+        pimpl->state = RedisClientImpl::Subscribed;
 
         return handle;
     }
@@ -240,9 +242,9 @@ RedisClient::Handle RedisClient::subscribe(
         std::stringstream ss;
 
         ss << "RedisClient::command called with invalid state "
-           << impl.state;
+           << pimpl->state;
 
-        impl.errorHandler(ss.str());
+        pimpl->errorHandler(ss.str());
         return Handle();
     }
 }
@@ -254,23 +256,23 @@ void RedisClient::unsubscribe(const Handle &handle)
     assert( recursion++ == 0 );
 #endif
 
-    assert( impl.state == RedisClientImpl::Connected ||
-            impl.state == RedisClientImpl::Subscribed);
+    assert( pimpl->state == RedisClientImpl::Connected ||
+            pimpl->state == RedisClientImpl::Subscribed);
 
     static std::string unsubscribe = "UNSUBSCRIBE";
 
-    if( impl.state == RedisClientImpl::Connected ||
-            impl.state == RedisClientImpl::Subscribed )
+    if( pimpl->state == RedisClientImpl::Connected ||
+            pimpl->state == RedisClientImpl::Subscribed )
     {
         // Remove subscribe-handler
         typedef RedisClientImpl::MsgHandlersMap::iterator iterator;
-        std::pair<iterator, iterator> pair = impl.msgHandlers.equal_range(handle.channel);
+        std::pair<iterator, iterator> pair = pimpl->msgHandlers.equal_range(handle.channel);
 
         for(iterator it = pair.first; it != pair.second;)
         {
             if( it->second.first == handle.id )
             {
-                impl.msgHandlers.erase(it++);
+                pimpl->msgHandlers.erase(it++);
             }
             else
             {
@@ -283,19 +285,19 @@ void RedisClient::unsubscribe(const Handle &handle)
         items[1] = handle.channel;
 
         // Unsubscribe command for Redis
-        impl.post(boost::bind(&RedisClientImpl::doCommand, &impl, items, dummyHandler));
+        pimpl->post(boost::bind(&RedisClientImpl::doCommand, pimpl, items, dummyHandler));
     }
     else
     {
         std::stringstream ss;
 
         ss << "RedisClient::command called with invalid state "
-           << impl.state;
+           << pimpl->state;
 
 #ifdef DEBUG
         --recursion;
 #endif
-        impl.errorHandler(ss.str());
+        pimpl->errorHandler(ss.str());
         return;
     }
 
@@ -308,30 +310,30 @@ void RedisClient::singleShotSubscribe(const std::string &channel,
                                       const boost::function<void(const std::string &msg)> &msgHandler,
                                       const boost::function<void(const RedisValue &)> &handler)
 {
-    assert( impl.state == RedisClientImpl::Connected ||
-            impl.state == RedisClientImpl::Subscribed);
+    assert( pimpl->state == RedisClientImpl::Connected ||
+            pimpl->state == RedisClientImpl::Subscribed);
 
     static std::string subscribe = "SUBSCRIBE";
 
-    if( impl.state == RedisClientImpl::Connected ||
-            impl.state == RedisClientImpl::Subscribed )
+    if( pimpl->state == RedisClientImpl::Connected ||
+            pimpl->state == RedisClientImpl::Subscribed )
     {
         std::vector<std::string> items(2);
         items[0] = subscribe;
         items[1] = channel;
 
-        impl.post(boost::bind(&RedisClientImpl::doCommand, &impl, items, handler));
-        impl.singleShotMsgHandlers.insert(std::make_pair(channel, msgHandler));
-        impl.state = RedisClientImpl::Subscribed;
+        pimpl->post(boost::bind(&RedisClientImpl::doCommand, pimpl, items, handler));
+        pimpl->singleShotMsgHandlers.insert(std::make_pair(channel, msgHandler));
+        pimpl->state = RedisClientImpl::Subscribed;
     }
     else
     {
         std::stringstream ss;
 
         ss << "RedisClient::command called with invalid state "
-           << impl.state;
+           << pimpl->state;
 
-        impl.errorHandler(ss.str());
+        pimpl->errorHandler(ss.str());
     }
 }
 
@@ -339,11 +341,11 @@ void RedisClient::singleShotSubscribe(const std::string &channel,
 void RedisClient::publish(const std::string &channel, const std::string &msg,
                           const boost::function<void(const RedisValue &)> &handler)
 {
-    assert( impl.state == RedisClientImpl::Connected );
+    assert( pimpl->state == RedisClientImpl::Connected );
 
     static std::string publish = "PUBLISH";
 
-    if( impl.state == RedisClientImpl::Connected )
+    if( pimpl->state == RedisClientImpl::Connected )
     {
         std::vector<std::string> items(3);
 
@@ -351,31 +353,31 @@ void RedisClient::publish(const std::string &channel, const std::string &msg,
         items[1] = channel;
         items[2] = msg;
 
-        impl.post(boost::bind(&RedisClientImpl::doCommand, &impl, items, handler));
+        pimpl->post(boost::bind(&RedisClientImpl::doCommand, pimpl, items, handler));
     }
     else
     {
         std::stringstream ss;
 
         ss << "RedisClient::command called with invalid state "
-           << impl.state;
+           << pimpl->state;
 
-        impl.errorHandler(ss.str());
+        pimpl->errorHandler(ss.str());
     }
 }
 
 bool RedisClient::stateValid() const
 {
-    assert( impl.state == RedisClientImpl::Connected );
+    assert( pimpl->state == RedisClientImpl::Connected );
 
-    if( impl.state != RedisClientImpl::Connected )
+    if( pimpl->state != RedisClientImpl::Connected )
     {
         std::stringstream ss;
 
         ss << "RedisClient::command called with invalid state "
-           << impl.state;
+           << pimpl->state;
 
-        impl.errorHandler(ss.str());
+        pimpl->errorHandler(ss.str());
         return false;
     }
 

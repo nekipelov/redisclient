@@ -21,9 +21,19 @@ RedisClientImpl::RedisClientImpl(boost::asio::io_service &ioService)
 
 RedisClientImpl::~RedisClientImpl()
 {
-    boost::system::error_code ignored_ec;
-    socket.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored_ec);
-    socket.close();
+    close();
+}
+
+void RedisClientImpl::close()
+{
+    if( state != RedisClientImpl::Closed )
+    {
+        boost::system::error_code ignored_ec;
+
+        socket.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored_ec);
+        errorHandler = boost::bind(&RedisClientImpl::ignoreErrorHandler, shared_from_this(), _1);
+        state = RedisClientImpl::Closed; 
+    }
 }
 
 
@@ -33,7 +43,7 @@ void RedisClientImpl::processMessage()
 
     socket.async_read_some(boost::asio::buffer(buf),
                            boost::bind(&RedisClientImpl::asyncRead,
-                                       this, _1, _2));
+                                       shared_from_this(), _1, _2));
 }
 
 void RedisClientImpl::doProcessMessage(const RedisValue &v)
@@ -132,7 +142,7 @@ void RedisClientImpl::asyncWrite(const boost::system::error_code &ec, const size
         
         boost::asio::async_write(socket,
                                  boost::asio::buffer(item.buff->data(), item.buff->size()),
-                                 boost::bind(&RedisClientImpl::asyncWrite, this, _1, _2));
+                                 boost::bind(&RedisClientImpl::asyncWrite, shared_from_this(), _1, _2));
     }
 }
 
@@ -183,7 +193,7 @@ void RedisClientImpl::doCommand(const std::vector<std::string> &command,
     {
         boost::asio::async_write(socket, 
                                  boost::asio::buffer(item.buff->data(), item.buff->size()),
-                                 boost::bind(&RedisClientImpl::asyncWrite, this, _1, _2));
+                                 boost::bind(&RedisClientImpl::asyncWrite, shared_from_this(), _1, _2));
     }
 }
 
@@ -231,6 +241,11 @@ void RedisClientImpl::onRedisError(const RedisValue &v)
 void RedisClientImpl::defaulErrorHandler(const std::string &s)
 {
     throw std::runtime_error(s);
+}
+
+void RedisClientImpl::ignoreErrorHandler(const std::string &)
+{
+    // empty
 }
 
 void RedisClientImpl::append(std::vector<char> &vec, const std::string &s)
