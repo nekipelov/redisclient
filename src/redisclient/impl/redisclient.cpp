@@ -10,7 +10,7 @@
 #include "../redisclient.h"
 
 RedisClient::RedisClient(boost::asio::io_service &ioService)
-    : pimpl(boost::make_shared<RedisClientImpl>(ioService))
+    : pimpl(boost::make_shared<RedisClientImpl>(boost::ref(ioService)))
 {
     pimpl->errorHandler = boost::bind(&RedisClientImpl::defaulErrorHandler,
                                       pimpl, _1);
