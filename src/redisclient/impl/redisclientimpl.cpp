@@ -30,8 +30,8 @@ void RedisClientImpl::close()
     {
         boost::system::error_code ignored_ec;
 
-        socket.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored_ec);
         errorHandler = boost::bind(&RedisClientImpl::ignoreErrorHandler, shared_from_this(), _1);
+        socket.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored_ec);
         state = RedisClientImpl::Closed; 
     }
 }
