@@ -30,9 +30,10 @@ void RedisClientImpl::close()
     {
         boost::system::error_code ignored_ec;
 
-        errorHandler = boost::bind(&RedisClientImpl::ignoreErrorHandler, shared_from_this(), _1);
+        errorHandler = boost::function<void(const std::string &)>(); 
         socket.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored_ec);
-        state = RedisClientImpl::Closed; 
+        socket.close(ignored_ec);
+        state = RedisClientImpl::Closed;
     }
 }
 
@@ -91,13 +92,13 @@ void RedisClientImpl::doProcessMessage(const RedisValue &v)
                 ss << "[RedisClient] invalid command: "
                    << command.toString();
 
-                errorHandler(ss.str());
+                onError(ss.str());
                 return;
             }
         }
         else
         {
-            errorHandler("[RedisClient] Protocol error");
+            onError("[RedisClient] Protocol error");
             return;
         }
     }
@@ -115,7 +116,7 @@ void RedisClientImpl::doProcessMessage(const RedisValue &v)
             ss << "[RedisClient] unexpected message: "
                <<  v.inspect();
 
-            errorHandler(ss.str());
+            onError(ss.str());
             return;
         }
     }
@@ -125,7 +126,7 @@ void RedisClientImpl::asyncWrite(const boost::system::error_code &ec, const size
 {
     if( ec )
     {
-        errorHandler(ec.message());
+        onError(ec.message());
         return;
     }
 
@@ -201,7 +202,7 @@ void RedisClientImpl::asyncRead(const boost::system::error_code &ec, const size_
 {
     if( ec || size == 0 )
     {
-        errorHandler(ec.message());
+        onError(ec.message());
         return;
     }
 
@@ -220,7 +221,7 @@ void RedisClientImpl::asyncRead(const boost::system::error_code &ec, const size_
         }
         else
         {
-            errorHandler("[RedisClient] Parser error");
+            onError("[RedisClient] Parser error");
             return;
         }
 
@@ -233,19 +234,24 @@ void RedisClientImpl::asyncRead(const boost::system::error_code &ec, const size_
 
 void RedisClientImpl::onRedisError(const RedisValue &v)
 {
-    std::string message = v.toString();
-    errorHandler(message);
+    if( errorHandler )
+    {
+        std::string message = v.toString();
+        errorHandler(message);
+    }
 }
 
+void RedisClientImpl::onError(const std::string &s)
+{
+    if( errorHandler )
+    {
+        errorHandler(s);
+    }
+}
 
 void RedisClientImpl::defaulErrorHandler(const std::string &s)
 {
     throw std::runtime_error(s);
-}
-
-void RedisClientImpl::ignoreErrorHandler(const std::string &)
-{
-    // empty
 }
 
 void RedisClientImpl::append(std::vector<char> &vec, const std::string &s)

@@ -244,7 +244,7 @@ RedisClient::Handle RedisClient::subscribe(
         ss << "RedisClient::command called with invalid state "
            << pimpl->state;
 
-        pimpl->errorHandler(ss.str());
+        pimpl->onError(ss.str());
         return Handle();
     }
 }
@@ -297,7 +297,7 @@ void RedisClient::unsubscribe(const Handle &handle)
 #ifdef DEBUG
         --recursion;
 #endif
-        pimpl->errorHandler(ss.str());
+        pimpl->onError(ss.str());
         return;
     }
 
@@ -333,7 +333,7 @@ void RedisClient::singleShotSubscribe(const std::string &channel,
         ss << "RedisClient::command called with invalid state "
            << pimpl->state;
 
-        pimpl->errorHandler(ss.str());
+        pimpl->onError(ss.str());
     }
 }
 
@@ -362,7 +362,7 @@ void RedisClient::publish(const std::string &channel, const std::string &msg,
         ss << "RedisClient::command called with invalid state "
            << pimpl->state;
 
-        pimpl->errorHandler(ss.str());
+        pimpl->onError(ss.str());
     }
 }
 
@@ -377,7 +377,7 @@ bool RedisClient::stateValid() const
         ss << "RedisClient::command called with invalid state "
            << pimpl->state;
 
-        pimpl->errorHandler(ss.str());
+        pimpl->onError(ss.str());
         return false;
     }
 
