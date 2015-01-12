@@ -130,11 +130,7 @@ void RedisClientImpl::asyncWrite(const boost::system::error_code &ec, const size
         return;
     }
 
-    assert( queue.empty() == false );
-
-    const QueueItem &item = queue.front();
-
-    handlers.push( item.handler );
+    assert(queue.empty() == false);
     queue.pop();
 
     if( queue.empty() == false )
@@ -189,6 +185,8 @@ void RedisClientImpl::doCommand(const std::vector<std::string> &command,
         append(*item.buff.get(), boost::lexical_cast<std::string>(*it));
         append(*item.buff.get(), crlf);
     }
+
+    handlers.push( item.handler );
 
     if( queue.size() == 1 )
     {
