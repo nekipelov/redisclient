@@ -1,32 +1,22 @@
-LIBS = -lboost_system
-LDFLAGS = -g -L.. -pthread
-CXXFLAGS = -g -O2 -Wall -Wextra -I../src
-CXX11FLAGS = -g -O2 -std=c++11 -Wall -Wextra -I../src
+LDFLAGS = -g -pthread -lboost_system
+CXXFLAGS = -g -O2 -Wall -Wextra -I../src -std=c++11
 
-all: examples
-examples: example1 example2 example3 example4 example5
+EXAMPLES = async_pubsub async_set_get async_set_get2 sync_set_get
+SOURCES = $(EXAMPLES:=.cpp)
+OBJS = $(SOURCES:.cpp=.o)
+DEPS = $(SOURCES:.cpp=.d)
 
-example1: $(OBJS) example1.o
-	$(CXX) $^ -o $@  $(LDFLAGS) $(LIBS)
-example1.o: example1.cpp
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+all: $(EXAMPLES) 
 
-example2: $(OBJS) example2.o
-	$(CXX) $^ -o $@  $(LDFLAGS) $(LIBS)
+$(EXAMPLES): $(OBJS)
+	$(CXX) $(LDFLAGS) $@.o -o $@
 
-example3: $(OBJS) example3.o
-	$(CXX) $^ -o $@  $(LDFLAGS) $(LIBS)
-
-example4: $(OBJS) example4.o
-	$(CXX) $^ -o $@  $(LDFLAGS) $(LIBS)
-
-example5: $(OBJS) example5.o
-	$(CXX) $^ -o $@  $(LDFLAGS) $(LIBS)
-	
 %.o: %.cpp
-	$(CXX) $(CXX11FLAGS) -c $< -o $@
+	$(CXX) $(CXXFLAGS) -MMD -c $< -o $@
 	
 clean:
-	rm -f $(OBJS) example1.o example1 example2.o example2 example3.o example3 example4.o example4 example5.o example5
+	rm -f $(OBJS) $(EXAMPLES) $(DEPS)
 
-.PHONY: all examples clean
+-include $(DEPS)
+
+.PHONY: clean

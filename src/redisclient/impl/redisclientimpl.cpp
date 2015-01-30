@@ -30,8 +30,8 @@ void RedisClientImpl::close()
     {
         boost::system::error_code ignored_ec;
 
+        errorHandler = boost::bind(&RedisClientImpl::ignoreErrorHandler, _1);
         socket.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored_ec);
-        errorHandler = boost::bind(&RedisClientImpl::ignoreErrorHandler, shared_from_this(), _1);
         state = RedisClientImpl::Closed; 
     }
 }
@@ -129,11 +129,7 @@ void RedisClientImpl::asyncWrite(const boost::system::error_code &ec, const size
         return;
     }
 
-    assert( queue.empty() == false );
-
-    const QueueItem &item = queue.front();
-
-    handlers.push( item.handler );
+    assert(queue.empty() == false);
     queue.pop();
 
     if( queue.empty() == false )
@@ -162,10 +158,77 @@ void RedisClientImpl::handleAsyncConnect(const boost::system::error_code &ec,
     }
 }
 
-void RedisClientImpl::doCommand(const std::vector<std::string> &command,
-                                const boost::function<void(const RedisValue &)> &handler)
+RedisValue RedisClientImpl::doSyncCommand(const std::vector<std::string> &command)
 {
-    
+    assert( queue.empty() );
+
+    using boost::system::error_code;
+    static const char crlf[] = {'\r', '\n'};
+
+    // FIXME: тут нужен boost::asio::buffers?
+    std::vector<char> buff;
+
+    // FIXME почему тут приходится специализировать функцию?
+    append(buff, '*');
+    append(buff, boost::lexical_cast<std::string>(command.size()));
+    append<>(buff, crlf);
+
+    std::vector<std::string>::const_iterator it = command.begin(), end = command.end();
+    for(; it != end; ++it)
+    {
+        append(buff, '$');
+        append(buff, boost::lexical_cast<std::string>(it->size()));
+        append<>(buff, crlf);
+        append(buff, boost::lexical_cast<std::string>(*it));
+        append<>(buff, crlf);
+    }
+
+    boost::system::error_code ec;
+    boost::asio::write(socket, boost::asio::buffer(buff.data(), buff.size()), ec);
+
+    if( ec )
+    {
+        errorHandler(ec.message());
+        return RedisValue();
+    }
+    else
+    {
+        boost::array<char, 4096> inbuff;
+
+        for(;;)
+        {
+            size_t size = socket.read_some(boost::asio::buffer(inbuff));
+
+            for(size_t pos = 0; pos < size;)
+            {
+                std::pair<size_t, RedisParser::ParseResult> result = 
+                    redisParser.parse(inbuff.data() + pos, size - pos);
+
+                if( result.second == RedisParser::Completed )
+                {
+                    // FIXME тут требуется обработка для subscribe и unsubscribe
+                    // doProcessMessage(redisParser.result());
+                    return redisParser.result();
+                }
+                else if( result.second == RedisParser::Incompleted )
+                {
+                    continue;
+                }
+                else
+                {
+                    errorHandler("[RedisClient] Parser error");
+                    return RedisValue();
+                }
+
+                pos += result.first;
+            }
+        }
+    }
+}
+
+void RedisClientImpl::doAsyncCommand(const std::vector<std::string> &command,
+                                     const boost::function<void(const RedisValue &)> &handler)
+{
     using boost::system::error_code;
     static const char crlf[] = {'\r', '\n'};
 
@@ -188,6 +251,8 @@ void RedisClientImpl::doCommand(const std::vector<std::string> &command,
         append(*item.buff.get(), boost::lexical_cast<std::string>(*it));
         append(*item.buff.get(), crlf);
     }
+
+    handlers.push( item.handler );
 
     if( queue.size() == 1 )
     {
@@ -259,7 +324,7 @@ void RedisClientImpl::append(std::vector<char> &vec, const char *s)
 }
 
 template<size_t size>
-void RedisClientImpl::append(std::vector<char> &vec, const char s[size])
+void RedisClientImpl::append(std::vector<char> &vec, const char (&s)[size])
 {
     vec.insert(vec.end(), s, s + size);
 }

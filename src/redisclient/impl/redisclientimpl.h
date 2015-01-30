@@ -18,7 +18,6 @@
 #include <queue>
 #include <map>
 
-#include "../redisclient.h"
 #include "../redisparser.h"
 #include "../config.h"
 
@@ -33,7 +32,9 @@ public:
 
     REDIS_CLIENT_DECL void close();
 
-    REDIS_CLIENT_DECL void doCommand(
+    REDIS_CLIENT_DECL RedisValue doSyncCommand(const std::vector<std::string> &command);
+
+    REDIS_CLIENT_DECL void doAsyncCommand(
             const std::vector<std::string> &command,
             const boost::function<void(const RedisValue &)> &handler);
 
@@ -45,13 +46,13 @@ public:
 
     REDIS_CLIENT_DECL void onRedisError(const RedisValue &);
     REDIS_CLIENT_DECL void defaulErrorHandler(const std::string &s);
-    REDIS_CLIENT_DECL void ignoreErrorHandler(const std::string &s);
+    REDIS_CLIENT_DECL static void ignoreErrorHandler(const std::string &s);
 
     REDIS_CLIENT_DECL static void append(std::vector<char> &vec, const std::string &s);
     REDIS_CLIENT_DECL static void append(std::vector<char> &vec, const char *s);
     REDIS_CLIENT_DECL static void append(std::vector<char> &vec, char c);
     template<size_t size>
-    REDIS_CLIENT_DECL static void append(std::vector<char> &vec, const char s[size]);
+    REDIS_CLIENT_DECL static void append(std::vector<char> &vec, const char (&s)[size]);
 
     template<typename Handler>
     REDIS_CLIENT_DECL void post(const Handler &handler);
