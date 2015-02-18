@@ -1,0 +1,2 @@
+DEPENDPATH += ../src
+INCLUDEPATH += ../src
