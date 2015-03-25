@@ -1,7 +1,7 @@
 redisclient
 ===========
 
-Build status: [![Build Status](https://travis-ci.org/nekipelov/redisclient.svg?branch=master)](https://travis-ci.org/nekipelov/redisclient)
+Build status: [![Build Status](https://travis-ci.org/nekipelov/redisclient.svg?branch=unstable)](https://travis-ci.org/nekipelov/redisclient)
 
 Current version: 0.4.0
 
