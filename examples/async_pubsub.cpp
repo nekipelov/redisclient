@@ -7,8 +7,10 @@
 
 static const std::string channelName = "unique-redis-channel-name-example";
 
-void subscribeHandler(boost::asio::io_service &ioService, const std::string &msg)
+void subscribeHandler(boost::asio::io_service &ioService, const std::vector<char> &buf)
 {
+    std::string msg(buf.begin(), buf.end());
+
     std::cerr << "Message: " << msg << std::endl;
 
     if( msg == "stop" )

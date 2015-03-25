@@ -20,12 +20,17 @@ RedisValue::RedisValue(int i)
 }
 
 RedisValue::RedisValue(const char *s)
-    : value( std::string(s) )
+    : value( std::vector<char>(s, s + strlen(s)) )
 {
 }
 
 RedisValue::RedisValue(const std::string &s)
-    : value(s)
+    : value( std::vector<char>(s.begin(), s.end()) )
+{
+}
+
+RedisValue::RedisValue(const std::vector<char> &buf)
+    : value(buf)
 {
 }
 
@@ -41,7 +46,13 @@ std::vector<RedisValue> RedisValue::toArray() const
 
 std::string RedisValue::toString() const
 {
-    return castTo<std::string>();
+    const std::vector<char> &buf = toByteArray();
+    return std::string(buf.begin(), buf.end());
+}
+
+std::vector<char> RedisValue::toByteArray() const
+{
+    return castTo<std::vector<char> >();
 }
 
 int RedisValue::toInt() const
@@ -101,7 +112,12 @@ bool RedisValue::isInt() const
 
 bool RedisValue::isString() const
 {
-    return typeEq<std::string>();
+    return typeEq<std::vector<char> >();
+}
+
+bool RedisValue::isByteArray() const
+{
+    return typeEq<std::vector<char> >();
 }
 
 bool RedisValue::isArray() const

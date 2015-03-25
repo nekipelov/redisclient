@@ -7,6 +7,7 @@
 #define REDISCLIENT_REDISPARSER_H
 
 #include <stack>
+#include <vector>
 
 #include "redisvalue.h"
 #include "config.h"
@@ -65,7 +66,7 @@ private:
     } state;
 
     long int bulkSize;
-    std::string string;
+    std::vector<char> buf;
     std::stack<long int> arrayStack;
     std::stack<RedisValue> valueStack;
 

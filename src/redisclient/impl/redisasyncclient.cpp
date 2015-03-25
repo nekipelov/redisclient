@@ -47,83 +47,88 @@ void RedisAsyncClient::command(const std::string &s, const boost::function<void(
 {
     if(stateValid())
     {
-        std::vector<std::string> items(1);
+        std::vector<RedisBuffer> items(1);
         items[0] = s;
 
-        pimpl->post(boost::bind(&RedisClientImpl::doAsyncCommand, pimpl, items, handler));
+        pimpl->post(boost::bind(&RedisClientImpl::doAsyncCommand, pimpl, 
+                    pimpl->makeCommand(items), handler));
     }
 }
 
-void RedisAsyncClient::command(const std::string &cmd, const std::string &arg1,
+void RedisAsyncClient::command(const std::string &cmd, const RedisBuffer &arg1,
                           const boost::function<void(const RedisValue &)> &handler)
 {
     if(stateValid())
     {
-        std::vector<std::string> items(2);
+        std::vector<RedisBuffer> items(2);
         items[0] = cmd;
         items[1] = arg1;
 
-        pimpl->post(boost::bind(&RedisClientImpl::doAsyncCommand, pimpl, items, handler));
+        pimpl->post(boost::bind(&RedisClientImpl::doAsyncCommand, pimpl,
+                    pimpl->makeCommand(items), handler));
     }
 }
 
-void RedisAsyncClient::command(const std::string &cmd, const std::string &arg1,
-                          const std::string &arg2,
+void RedisAsyncClient::command(const std::string &cmd, const RedisBuffer &arg1,
+                          const RedisBuffer &arg2,
                           const boost::function<void(const RedisValue &)> &handler)
 {
     if(stateValid())
     {
-        std::vector<std::string> items(3);
+        std::vector<RedisBuffer> items(3);
         items[0] = cmd;
         items[1] = arg1;
         items[2] = arg2;
 
-        pimpl->post(boost::bind(&RedisClientImpl::doAsyncCommand, pimpl, items, handler));
+        pimpl->post(boost::bind(&RedisClientImpl::doAsyncCommand, pimpl,
+                    pimpl->makeCommand(items), handler));
     }
 }
 
-void RedisAsyncClient::command(const std::string &cmd, const std::string &arg1,
-                          const std::string &arg2, const std::string &arg3,
+void RedisAsyncClient::command(const std::string &cmd, const RedisBuffer &arg1,
+                          const RedisBuffer &arg2, const RedisBuffer &arg3,
                           const boost::function<void(const RedisValue &)> &handler)
 {
     if(stateValid())
     {
-        std::vector<std::string> items(4);
+        std::vector<RedisBuffer> items(4);
         items[0] = cmd;
         items[1] = arg1;
         items[2] = arg2;
         items[3] = arg3;
 
-        pimpl->post(boost::bind(&RedisClientImpl::doAsyncCommand, pimpl, items, handler));
+        pimpl->post(boost::bind(&RedisClientImpl::doAsyncCommand, pimpl, 
+                    pimpl->makeCommand(items), handler));
     }
 }
 
-void RedisAsyncClient::command(const std::string &cmd, const std::string &arg1,
-                          const std::string &arg2, const std::string &arg3,
-                          const std::string &arg4,
+void RedisAsyncClient::command(const std::string &cmd, const RedisBuffer &arg1,
+                          const RedisBuffer &arg2, const RedisBuffer &arg3,
+                          const RedisBuffer &arg4,
                           const boost::function<void(const RedisValue &)> &handler)
 {
     if(stateValid())
     {
-        std::vector<std::string> items(5);
+        std::vector<RedisBuffer> items(5);
         items[0] = cmd;
         items[1] = arg1;
         items[2] = arg2;
         items[3] = arg3;
         items[4] = arg4;
 
-        pimpl->post(boost::bind(&RedisClientImpl::doAsyncCommand, pimpl, items, handler));
+        pimpl->post(boost::bind(&RedisClientImpl::doAsyncCommand, pimpl,
+                    pimpl->makeCommand(items), handler));
     }
 }
 
-void RedisAsyncClient::command(const std::string &cmd, const std::string &arg1,
-                          const std::string &arg2, const std::string &arg3,
-                          const std::string &arg4, const std::string &arg5,
+void RedisAsyncClient::command(const std::string &cmd, const RedisBuffer &arg1,
+                          const RedisBuffer &arg2, const RedisBuffer &arg3,
+                          const RedisBuffer &arg4, const RedisBuffer &arg5,
                           const boost::function<void(const RedisValue &)> &handler)
 {
     if(stateValid())
     {
-        std::vector<std::string> items(6);
+        std::vector<RedisBuffer> items(6);
         items[0] = cmd;
         items[1] = arg1;
         items[2] = arg2;
@@ -131,19 +136,20 @@ void RedisAsyncClient::command(const std::string &cmd, const std::string &arg1,
         items[4] = arg4;
         items[5] = arg5;
 
-        pimpl->post(boost::bind(&RedisClientImpl::doAsyncCommand, pimpl, items, handler));
+        pimpl->post(boost::bind(&RedisClientImpl::doAsyncCommand, pimpl,
+                    pimpl->makeCommand(items), handler));
     }
 }
 
-void RedisAsyncClient::command(const std::string &cmd, const std::string &arg1,
-                          const std::string &arg2, const std::string &arg3,
-                          const std::string &arg4, const std::string &arg5,
-                          const std::string &arg6,
+void RedisAsyncClient::command(const std::string &cmd, const RedisBuffer &arg1,
+                          const RedisBuffer &arg2, const RedisBuffer &arg3,
+                          const RedisBuffer &arg4, const RedisBuffer &arg5,
+                          const RedisBuffer &arg6,
                           const boost::function<void(const RedisValue &)> &handler)
 {
     if(stateValid())
     {
-        std::vector<std::string> items(7);
+        std::vector<RedisBuffer> items(7);
         items[0] = cmd;
         items[1] = arg1;
         items[2] = arg2;
@@ -152,19 +158,20 @@ void RedisAsyncClient::command(const std::string &cmd, const std::string &arg1,
         items[5] = arg5;
         items[6] = arg6;
 
-        pimpl->post(boost::bind(&RedisClientImpl::doAsyncCommand, pimpl, items, handler));
+        pimpl->post(boost::bind(&RedisClientImpl::doAsyncCommand, pimpl,
+                    pimpl->makeCommand(items), handler));
     }
 }
 
-void RedisAsyncClient::command(const std::string &cmd, const std::string &arg1,
-                          const std::string &arg2, const std::string &arg3,
-                          const std::string &arg4, const std::string &arg5,
-                          const std::string &arg6, const std::string &arg7,
+void RedisAsyncClient::command(const std::string &cmd, const RedisBuffer &arg1,
+                          const RedisBuffer &arg2, const RedisBuffer &arg3,
+                          const RedisBuffer &arg4, const RedisBuffer &arg5,
+                          const RedisBuffer &arg6, const RedisBuffer &arg7,
                           const boost::function<void(const RedisValue &)> &handler)
 {
     if(stateValid())
     {
-        std::vector<std::string> items(8);
+        std::vector<RedisBuffer> items(8);
         items[0] = cmd;
         items[1] = arg1;
         items[2] = arg2;
@@ -174,44 +181,47 @@ void RedisAsyncClient::command(const std::string &cmd, const std::string &arg1,
         items[6] = arg6;
         items[7] = arg7;
 
-        pimpl->post(boost::bind(&RedisClientImpl::doAsyncCommand, pimpl, items, handler));
+        pimpl->post(boost::bind(&RedisClientImpl::doAsyncCommand, pimpl,
+                    pimpl->makeCommand(items), handler));
     }
 }
 
-void RedisAsyncClient::command(const std::string &cmd, const std::list<std::string> &args,
+void RedisAsyncClient::command(const std::string &cmd, const std::list<RedisBuffer> &args,
                           const boost::function<void(const RedisValue &)> &handler)
 {
     if(stateValid())
     {
-        std::vector<std::string> items(1);
+        std::vector<RedisBuffer> items(1);
         items[0] = cmd;
 
         items.reserve(1 + args.size());
 
         std::copy(args.begin(), args.end(), std::back_inserter(items));
-        pimpl->post(boost::bind(&RedisClientImpl::doAsyncCommand, pimpl, items, handler));
+        pimpl->post(boost::bind(&RedisClientImpl::doAsyncCommand, pimpl,
+                    pimpl->makeCommand(items), handler));
     }
 }
 
 RedisAsyncClient::Handle RedisAsyncClient::subscribe(
         const std::string &channel,
-        const boost::function<void(const std::string &msg)> &msgHandler,
+        const boost::function<void(const std::vector<char> &msg)> &msgHandler,
         const boost::function<void(const RedisValue &)> &handler)
 {
     assert( pimpl->state == RedisClientImpl::Connected ||
             pimpl->state == RedisClientImpl::Subscribed);
 
-    static std::string subscribe = "SUBSCRIBE";
+    static const std::string subscribe = "SUBSCRIBE";
 
     if( pimpl->state == RedisClientImpl::Connected || pimpl->state == RedisClientImpl::Subscribed )
     {
         Handle handle = {pimpl->subscribeSeq++, channel};
 
-        std::vector<std::string> items(2);
+        std::vector<RedisBuffer> items(2);
         items[0] = subscribe;
         items[1] = channel;
 
-        pimpl->post(boost::bind(&RedisClientImpl::doAsyncCommand, pimpl, items, handler));
+        pimpl->post(boost::bind(&RedisClientImpl::doAsyncCommand, pimpl,
+                    pimpl->makeCommand(items), handler));
         pimpl->msgHandlers.insert(std::make_pair(channel, std::make_pair(handle.id, msgHandler)));
         pimpl->state = RedisClientImpl::Subscribed;
 
@@ -239,7 +249,7 @@ void RedisAsyncClient::unsubscribe(const Handle &handle)
     assert( pimpl->state == RedisClientImpl::Connected ||
             pimpl->state == RedisClientImpl::Subscribed);
 
-    static std::string unsubscribe = "UNSUBSCRIBE";
+    static const std::string unsubscribe = "UNSUBSCRIBE";
 
     if( pimpl->state == RedisClientImpl::Connected ||
             pimpl->state == RedisClientImpl::Subscribed )
@@ -260,12 +270,13 @@ void RedisAsyncClient::unsubscribe(const Handle &handle)
             }
         }
 
-        std::vector<std::string> items(2);
+        std::vector<RedisBuffer> items(2);
         items[0] = unsubscribe;
         items[1] = handle.channel;
 
         // Unsubscribe command for Redis
-        pimpl->post(boost::bind(&RedisClientImpl::doAsyncCommand, pimpl, items, dummyHandler));
+        pimpl->post(boost::bind(&RedisClientImpl::doAsyncCommand, pimpl,
+                    pimpl->makeCommand(items), dummyHandler));
     }
     else
     {
@@ -287,22 +298,23 @@ void RedisAsyncClient::unsubscribe(const Handle &handle)
 }
 
 void RedisAsyncClient::singleShotSubscribe(const std::string &channel,
-                                      const boost::function<void(const std::string &msg)> &msgHandler,
+                                      const boost::function<void(const std::vector<char> &msg)> &msgHandler,
                                       const boost::function<void(const RedisValue &)> &handler)
 {
     assert( pimpl->state == RedisClientImpl::Connected ||
             pimpl->state == RedisClientImpl::Subscribed);
 
-    static std::string subscribe = "SUBSCRIBE";
+    static const std::string subscribe = "SUBSCRIBE";
 
     if( pimpl->state == RedisClientImpl::Connected ||
             pimpl->state == RedisClientImpl::Subscribed )
     {
-        std::vector<std::string> items(2);
+        std::vector<RedisBuffer> items(2);
         items[0] = subscribe;
         items[1] = channel;
 
-        pimpl->post(boost::bind(&RedisClientImpl::doAsyncCommand, pimpl, items, handler));
+        pimpl->post(boost::bind(&RedisClientImpl::doAsyncCommand, pimpl,
+                    pimpl->makeCommand(items), handler));
         pimpl->singleShotMsgHandlers.insert(std::make_pair(channel, msgHandler));
         pimpl->state = RedisClientImpl::Subscribed;
     }
@@ -318,22 +330,23 @@ void RedisAsyncClient::singleShotSubscribe(const std::string &channel,
 }
 
 
-void RedisAsyncClient::publish(const std::string &channel, const std::string &msg,
+void RedisAsyncClient::publish(const std::string &channel, const RedisBuffer &msg,
                           const boost::function<void(const RedisValue &)> &handler)
 {
     assert( pimpl->state == RedisClientImpl::Connected );
 
-    static std::string publish = "PUBLISH";
+    static const std::string publish = "PUBLISH";
 
     if( pimpl->state == RedisClientImpl::Connected )
     {
-        std::vector<std::string> items(3);
+        std::vector<RedisBuffer> items(3);
 
         items[0] = publish;
         items[1] = channel;
         items[2] = msg;
 
-        pimpl->post(boost::bind(&RedisClientImpl::doAsyncCommand, pimpl, items, handler));
+        pimpl->post(boost::bind(&RedisClientImpl::doAsyncCommand, pimpl,
+                    pimpl->makeCommand(items), handler));
     }
     else
     {

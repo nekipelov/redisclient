@@ -18,11 +18,16 @@ public:
     REDIS_CLIENT_DECL RedisValue(int i);
     REDIS_CLIENT_DECL RedisValue(const char *s);
     REDIS_CLIENT_DECL RedisValue(const std::string &s);
+    REDIS_CLIENT_DECL RedisValue(const std::vector<char> &buf);
     REDIS_CLIENT_DECL RedisValue(const std::vector<RedisValue> &array);
 
     // Return the value as a std::string if 
-    // type is a std::string; otherwise returns an empty std::string.
+    // type is a byte string; otherwise returns an empty std::string.
     REDIS_CLIENT_DECL std::string toString() const;
+
+    // Return the value as a std::vector<char> if 
+    // type is a byte string; otherwise returns an empty std::vector<char>.
+    REDIS_CLIENT_DECL std::vector<char> toByteArray() const;
     
     // Return the value as a std::vector<RedisValue> if 
     // type is an int; otherwise returns 0.
@@ -40,10 +45,12 @@ public:
     REDIS_CLIENT_DECL bool isNull() const;
     // Return true if type is an int
     REDIS_CLIENT_DECL bool isInt() const;
-    // Return true if type is a string
-    REDIS_CLIENT_DECL bool isString() const;
     // Return true if type is an array
     REDIS_CLIENT_DECL bool isArray() const;
+    // Return true if type is a string/byte array. Alias for isString();
+    REDIS_CLIENT_DECL bool isByteArray() const;
+    // Return true if type is a string/byte array. Alias for isByteArray().
+    REDIS_CLIENT_DECL bool isString() const;
 
     REDIS_CLIENT_DECL bool operator == (const RedisValue &rhs) const;
     REDIS_CLIENT_DECL bool operator != (const RedisValue &rhs) const;
@@ -63,7 +70,7 @@ private:
     };
 
 
-    boost::variant<NullTag, int, std::string, std::vector<RedisValue> > value;
+    boost::variant<NullTag, int, std::vector<char>, std::vector<RedisValue> > value;
 };
 
 

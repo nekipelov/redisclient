@@ -60,7 +60,7 @@ RedisValue RedisSyncClient::command(const std::string &s)
 {
     if(stateValid())
     {
-        std::vector<std::string> items(1);
+        std::vector<RedisBuffer> items(1);
         items[0] = s;
 
         return pimpl->doSyncCommand(items);
@@ -75,9 +75,9 @@ RedisValue RedisSyncClient::command(const std::string &cmd, const RedisBuffer &a
 {
     if(stateValid())
     {
-        std::vector<std::string> items(2);
+        std::vector<RedisBuffer> items(2);
         items[0] = cmd;
-        items[1] = std::string(arg1.data(), arg1.data() + arg1.size());
+        items[1] = arg1;
 
         return pimpl->doSyncCommand(items);
     }
@@ -92,10 +92,10 @@ RedisValue RedisSyncClient::command(const std::string &cmd, const RedisBuffer &a
 {
     if(stateValid())
     {
-        std::vector<std::string> items(3);
+        std::vector<RedisBuffer> items(3);
         items[0] = cmd;
-        items[1] = std::string(arg1.data(), arg1.data() + arg1.size());
-        items[2] = std::string(arg2.data(), arg2.data() + arg2.size());
+        items[1] = arg1;
+        items[2] = arg2; 
 
         return pimpl->doSyncCommand(items);
     }
@@ -110,11 +110,11 @@ RedisValue RedisSyncClient::command(const std::string &cmd, const RedisBuffer &a
 {
     if(stateValid())
     {
-        std::vector<std::string> items(4);
+        std::vector<RedisBuffer> items(4);
         items[0] = cmd;
-        items[1] = std::string(arg1.data(), arg1.data() + arg1.size());
-        items[2] = std::string(arg2.data(), arg2.data() + arg2.size());
-        items[3] = std::string(arg3.data(), arg3.data() + arg3.size());
+        items[1] = arg1; 
+        items[2] = arg2;
+        items[3] = arg3;
 
         return pimpl->doSyncCommand(items);
     }
@@ -130,12 +130,12 @@ RedisValue RedisSyncClient::command(const std::string &cmd, const RedisBuffer &a
 {
     if(stateValid())
     {
-        std::vector<std::string> items(5);
+        std::vector<RedisBuffer> items(5);
         items[0] = cmd;
-        items[1] = std::string(arg1.data(), arg1.data() + arg1.size());
-        items[2] = std::string(arg2.data(), arg2.data() + arg2.size());
-        items[3] = std::string(arg3.data(), arg3.data() + arg3.size());
-        items[4] = std::string(arg4.data(), arg4.data() + arg4.size());
+        items[1] = arg1;
+        items[2] = arg2;
+        items[3] = arg3;
+        items[4] = arg4;
 
         return pimpl->doSyncCommand(items);
     }
@@ -151,13 +151,13 @@ RedisValue RedisSyncClient::command(const std::string &cmd, const RedisBuffer &a
 {
     if(stateValid())
     {
-        std::vector<std::string> items(6);
+        std::vector<RedisBuffer> items(6);
         items[0] = cmd;
-        items[1] = std::string(arg1.data(), arg1.data() + arg1.size());
-        items[2] = std::string(arg2.data(), arg2.data() + arg2.size());
-        items[3] = std::string(arg3.data(), arg3.data() + arg3.size());
-        items[4] = std::string(arg4.data(), arg4.data() + arg4.size());
-        items[5] = std::string(arg5.data(), arg5.data() + arg5.size());
+        items[1] = arg1; 
+        items[2] = arg2;
+        items[3] = arg3;
+        items[4] = arg4;
+        items[5] = arg5;
 
         return pimpl->doSyncCommand(items);
     }
@@ -174,14 +174,14 @@ RedisValue RedisSyncClient::command(const std::string &cmd, const RedisBuffer &a
 {
     if(stateValid())
     {
-        std::vector<std::string> items(7);
+        std::vector<RedisBuffer> items(7);
         items[0] = cmd;
-        items[1] = std::string(arg1.data(), arg1.data() + arg1.size());
-        items[2] = std::string(arg2.data(), arg2.data() + arg2.size());
-        items[3] = std::string(arg3.data(), arg3.data() + arg3.size());
-        items[4] = std::string(arg4.data(), arg4.data() + arg4.size());
-        items[5] = std::string(arg5.data(), arg5.data() + arg5.size());
-        items[6] = std::string(arg6.data(), arg6.data() + arg6.size());
+        items[1] = arg1; 
+        items[2] = arg2;
+        items[3] = arg3;
+        items[4] = arg4;
+        items[5] = arg5;
+        items[6] = arg6;
 
         return pimpl->doSyncCommand(items);
     }
@@ -198,15 +198,15 @@ RedisValue RedisSyncClient::command(const std::string &cmd, const RedisBuffer &a
 {
     if(stateValid())
     {
-        std::vector<std::string> items(8);
+        std::vector<RedisBuffer> items(8);
         items[0] = cmd;
-        items[1] = std::string(arg1.data(), arg1.data() + arg1.size());
-        items[2] = std::string(arg2.data(), arg2.data() + arg2.size());
-        items[3] = std::string(arg3.data(), arg3.data() + arg3.size());
-        items[4] = std::string(arg4.data(), arg4.data() + arg4.size());
-        items[5] = std::string(arg5.data(), arg5.data() + arg5.size());
-        items[6] = std::string(arg6.data(), arg6.data() + arg6.size());
-        items[7] = std::string(arg7.data(), arg7.data() + arg7.size());
+        items[1] = arg1;
+        items[2] = arg2;
+        items[3] = arg3;
+        items[4] = arg4;
+        items[5] = arg5;
+        items[6] = arg6;
+        items[7] = arg7;
 
         return pimpl->doSyncCommand(items);
     }
@@ -220,7 +220,7 @@ RedisValue RedisSyncClient::command(const std::string &cmd, const std::list<std:
 {
     if(stateValid())
     {
-        std::vector<std::string> items(1);
+        std::vector<RedisBuffer> items(1);
         items[0] = cmd;
 
         items.reserve(1 + args.size());

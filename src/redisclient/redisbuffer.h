@@ -14,8 +14,10 @@
 
 #include "config.h"
 
-class RedisBuffer : boost::noncopyable {
+class RedisBuffer
+{
 public:
+    inline RedisBuffer();
     inline RedisBuffer(const char *ptr, size_t size);
     inline RedisBuffer(const char *s);
     inline RedisBuffer(const std::string &s);
@@ -26,9 +28,14 @@ public:
 
 private:
     const char *ptr_;
-    const size_t size_;
+    size_t size_;
 };
 
+
+RedisBuffer::RedisBuffer()
+    : ptr_(NULL), size_(0)
+{
+}
 
 RedisBuffer::RedisBuffer(const char *ptr, size_t size)
     : ptr_(ptr), size_(size)

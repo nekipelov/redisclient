@@ -22,14 +22,14 @@ int main(int, char **)
 
     const std::string key = "unique-redis-key-example";
     const char rawValue [] = "unique-redis-value";
-    const std::string stringValue(rawValue, rawValue + sizeof(rawValue));
-    const std::vector<char> vectorValue(rawValue, rawValue + sizeof(rawValue));
+    const std::string stringValue(rawValue, rawValue + sizeof(rawValue) - 1);
+    const std::vector<char> vectorValue(rawValue, rawValue + sizeof(rawValue) - 1);
 
     {
         // raw
         redis.command("SET", key, rawValue);
         RedisValue value = redis.command("GET", key);
-        
+
         if( value.toString() != rawValue )
         {
             std::cerr << "Invalid value from redis: " << value.toString() << std::endl;
@@ -53,14 +53,14 @@ int main(int, char **)
         // vector<char>
         redis.command("SET", key, vectorValue);
         RedisValue value = redis.command("GET", key);
-        /*
-        if( value.toString() != vectorValue )
+    
+        if( value.toByteArray() != vectorValue )
         {
             std::cerr << "Invalid value from redis: " << value.toString() << std::endl;
             return EXIT_FAILURE;
         }
-        * */
     }
+
 
     return EXIT_SUCCESS;
 }
