@@ -3,3 +3,4 @@
 *.so
 examples/example[1-4]
 tests/parsertest
+/redisclient.pro.user
