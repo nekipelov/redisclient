@@ -56,14 +56,14 @@ void RedisClientImpl::doProcessMessage(const RedisValue &v)
         if( result.size() == 3 )
         {
             const RedisValue &command = result[0];
-            const RedisValue &queue = result[1];
+            const RedisValue &queueName = result[1];
             const RedisValue &value = result[2];
 
             const std::string &cmd = command.toString();
 
             if( cmd == "message" )
             {
-                SingleShotHandlersMap::iterator it = singleShotMsgHandlers.find(queue.toString());
+                SingleShotHandlersMap::iterator it = singleShotMsgHandlers.find(queueName.toString());
                 if( it != singleShotMsgHandlers.end() )
                 {
                     strand.post(boost::bind(it->second, value.toString()));
@@ -71,9 +71,9 @@ void RedisClientImpl::doProcessMessage(const RedisValue &v)
                 }
 
                 std::pair<MsgHandlersMap::iterator, MsgHandlersMap::iterator> pair =
-                        msgHandlers.equal_range(queue.toString());
-                for(MsgHandlersMap::iterator it = pair.first; it != pair.second; ++it)
-                    strand.post(boost::bind(it->second.second, value.toString()));
+                        msgHandlers.equal_range(queueName.toString());
+                for(MsgHandlersMap::iterator jt = pair.first; jt != pair.second; ++jt)
+                    strand.post(boost::bind(jt->second.second, value.toString()));
             }
             else if( cmd == "subscribe" && handlers.empty() == false )
             {
