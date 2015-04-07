@@ -9,6 +9,8 @@
 #include <boost/make_shared.hpp>
 #include "../redisclient.h"
 
+static const std::string subscribeStr = "SUBSCRIBE";
+
 RedisClient::RedisClient(boost::asio::io_service &ioService)
     : pimpl(boost::make_shared<RedisClientImpl>(boost::ref(ioService)))
 {
@@ -221,14 +223,12 @@ RedisClient::Handle RedisClient::subscribe(
     assert( pimpl->state == RedisClientImpl::Connected ||
             pimpl->state == RedisClientImpl::Subscribed);
 
-    static std::string subscribe = "SUBSCRIBE";
-
     if( pimpl->state == RedisClientImpl::Connected || pimpl->state == RedisClientImpl::Subscribed )
     {
         Handle handle = {pimpl->subscribeSeq++, channel};
 
         std::vector<std::string> items(2);
-        items[0] = subscribe;
+        items[0] = subscribeStr;
         items[1] = channel;
 
         pimpl->post(boost::bind(&RedisClientImpl::doCommand, pimpl, items, handler));
@@ -259,7 +259,7 @@ void RedisClient::unsubscribe(const Handle &handle)
     assert( pimpl->state == RedisClientImpl::Connected ||
             pimpl->state == RedisClientImpl::Subscribed);
 
-    static std::string unsubscribe = "UNSUBSCRIBE";
+    static const std::string unsubscribeStr = "UNSUBSCRIBE";
 
     if( pimpl->state == RedisClientImpl::Connected ||
             pimpl->state == RedisClientImpl::Subscribed )
@@ -281,7 +281,7 @@ void RedisClient::unsubscribe(const Handle &handle)
         }
 
         std::vector<std::string> items(2);
-        items[0] = unsubscribe;
+        items[0] = unsubscribeStr;
         items[1] = handle.channel;
 
         // Unsubscribe command for Redis
@@ -313,13 +313,11 @@ void RedisClient::singleShotSubscribe(const std::string &channel,
     assert( pimpl->state == RedisClientImpl::Connected ||
             pimpl->state == RedisClientImpl::Subscribed);
 
-    static std::string subscribe = "SUBSCRIBE";
-
     if( pimpl->state == RedisClientImpl::Connected ||
             pimpl->state == RedisClientImpl::Subscribed )
     {
         std::vector<std::string> items(2);
-        items[0] = subscribe;
+        items[0] = subscribeStr;
         items[1] = channel;
 
         pimpl->post(boost::bind(&RedisClientImpl::doCommand, pimpl, items, handler));
@@ -343,13 +341,13 @@ void RedisClient::publish(const std::string &channel, const std::string &msg,
 {
     assert( pimpl->state == RedisClientImpl::Connected );
 
-    static std::string publish = "PUBLISH";
+    static const std::string publishStr = "PUBLISH";
 
     if( pimpl->state == RedisClientImpl::Connected )
     {
         std::vector<std::string> items(3);
 
-        items[0] = publish;
+        items[0] = publishStr;
         items[1] = channel;
         items[2] = msg;
 
