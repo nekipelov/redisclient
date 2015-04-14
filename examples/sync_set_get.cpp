@@ -21,46 +21,19 @@ int main(int, char **)
     }
 
     const std::string key = "unique-redis-key-example";
-    const char rawValue [] = "unique-redis-value";
-    const std::string stringValue(rawValue, rawValue + sizeof(rawValue) - 1);
-    const std::vector<char> vectorValue(rawValue, rawValue + sizeof(rawValue) - 1);
+    const char value [] = "unique-redis-value";
 
-    {
-        // raw
-        redis.command("SET", key, rawValue);
-        RedisValue value = redis.command("GET", key);
+    redis.command("SET", key, value);
+    RedisValue result = redis.command("GET", key);
 
-        if( value.toString() != rawValue )
-        {
-            std::cerr << "Invalid value from redis: " << value.toString() << std::endl;
-            return EXIT_FAILURE;
-        }
-    }
-
-    {
-        // std::string
-        redis.command("SET", key, stringValue);
-        RedisValue value = redis.command("GET", key);
-        
-        if( value.toString() != stringValue )
-        {
-            std::cerr << "Invalid value from redis: " << value.toString() << std::endl;
-            return EXIT_FAILURE;
-        }
-    }
-
-    {
-        // vector<char>
-        redis.command("SET", key, vectorValue);
-        RedisValue value = redis.command("GET", key);
+    std::cout << "SET " << key << ": " << value << "\n";
+    std::cout << "GET " << key << ": " << result.toString() << "\n";
     
-        if( value.toByteArray() != vectorValue )
-        {
-            std::cerr << "Invalid value from redis: " << value.toString() << std::endl;
-            return EXIT_FAILURE;
-        }
+    if( result.toString() != value )
+    {
+        std::cerr << "Invalid value from redis: " << result.toString() << std::endl;
+        return EXIT_FAILURE;
     }
-
 
     return EXIT_SUCCESS;
 }
