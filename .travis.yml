@@ -15,4 +15,7 @@ before_script:
   - sudo apt-get install -qq libboost-dev libboost-test-dev libboost-system-dev
 
 script:
-  - make && make test && make -C examples
+  - cmake
+  - make
+  - make test
+
