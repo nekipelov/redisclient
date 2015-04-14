@@ -15,7 +15,8 @@ before_script:
   - sudo apt-get install -qq libboost-dev libboost-test-dev libboost-system-dev
 
 script:
-  - cmake
+  - mkdir build && cd build
+  - cmake ..
   - make
   - make test
 
