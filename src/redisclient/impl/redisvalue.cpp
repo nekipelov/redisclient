@@ -6,6 +6,7 @@
 #ifndef REDISCLIENT_REDISVALUE_CPP
 #define REDISCLIENT_REDISVALUE_CPP
 
+#include <string.h>
 #include <boost/lexical_cast.hpp>
 #include "../redisvalue.h"
 

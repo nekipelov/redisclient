@@ -193,7 +193,7 @@ RedisValue RedisClientImpl::doSyncCommand(const std::vector<RedisBuffer> &buff)
 
     {
         std::vector<char> data = makeCommand(buff);
-        boost::asio::write(socket, boost::asio::buffer(data), ec);
+        boost::asio::write(socket, boost::asio::buffer(data), boost::asio::transfer_all(), ec);
     }
 
     if( ec )
