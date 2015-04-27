@@ -361,9 +361,9 @@ std::pair<size_t, RedisParser::ParseResult> RedisParser::parseChunk(const char *
 
                         if( i + 1 != size )
                         {
-                            std::pair<size_t, ParseResult> result = parseArray(ptr + i + 1, size - i - 1);
-                            result.first += i + 1;
-                            return result;
+                            std::pair<size_t, ParseResult> parseResult = parseArray(ptr + i + 1, size - i - 1);
+                            parseResult.first += i + 1;
+                            return parseResult;
                         }
                         else
                         {
