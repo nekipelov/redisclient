@@ -11,32 +11,37 @@
 #include "../redisvalue.h"
 
 RedisValue::RedisValue()
-    : value(NullTag())
+    : value(NullTag()), error(false)
 {
 }
 
 RedisValue::RedisValue(int i)
-    : value(i)
+    : value(i), error(false)
 {
 }
 
 RedisValue::RedisValue(const char *s)
-    : value( std::vector<char>(s, s + strlen(s)) )
+    : value( std::vector<char>(s, s + strlen(s)) ), error(false)
 {
 }
 
 RedisValue::RedisValue(const std::string &s)
-    : value( std::vector<char>(s.begin(), s.end()) )
+    : value( std::vector<char>(s.begin(), s.end()) ), error(false)
 {
 }
 
 RedisValue::RedisValue(const std::vector<char> &buf)
-    : value(buf)
+    : value(buf), error(false)
+{
+}
+
+RedisValue::RedisValue(const std::vector<char> &buf, struct ErrorTag &)
+    : value(buf), error(true)
 {
 }
 
 RedisValue::RedisValue(const std::vector<RedisValue> &array)
-    : value(array)
+    : value(array), error(false)
 {
 }
 
@@ -63,7 +68,17 @@ int RedisValue::toInt() const
 
 std::string RedisValue::inspect() const
 {
-    if( isNull() )
+    if( isError() )
+    {
+        static std::string err = "error: ";
+        std::string result;
+
+        result = err;
+        result += toString();
+
+        return result;
+    }
+    else if( isNull() )
     {
         static std::string null = "(null)";
         return null;
@@ -99,6 +114,16 @@ std::string RedisValue::inspect() const
 
         return result;
     }
+}
+
+bool RedisValue::isOk() const
+{
+    return !isError();
+}
+
+bool RedisValue::isError() const
+{
+    return error;
 }
 
 bool RedisValue::isNull() const

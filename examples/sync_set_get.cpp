@@ -20,20 +20,26 @@ int main(int, char **)
         return EXIT_FAILURE;
     }
 
-    const std::string key = "unique-redis-key-example";
-    const char value [] = "unique-redis-value";
+    RedisValue result;
 
-    redis.command("SET", key, value);
-    RedisValue result = redis.command("GET", key);
+    result = redis.command("SET", "key", "value");
 
-    std::cout << "SET " << key << ": " << value << "\n";
-    std::cout << "GET " << key << ": " << result.toString() << "\n";
-    
-    if( result.toString() != value )
+    if( result.isError() )
     {
-        std::cerr << "Invalid value from redis: " << result.toString() << std::endl;
+        std::cerr << "SET error: " << result.toString() << "\n";
         return EXIT_FAILURE;
     }
 
-    return EXIT_SUCCESS;
+    result = redis.command("GET", "key");
+
+    if( result.isOk() )
+    {
+        std::cout << "GET " << key << ": " << result.toString() << "\n";
+        return EXIT_SUCCESS;
+    }
+    else
+    {
+        std::cerr << "GET error: " << result.toString() << "\n";
+        return EXIT_FAILURE;
+    }
 }

@@ -26,16 +26,28 @@ Get/set example:
             return EXIT_FAILURE;
         }
     
-        const std::string key = "unique-redis-key-example";
-        const char value [] = "unique-redis-value";
+        RedisValue result;
     
-        redis.command("SET", key, value);
-        RedisValue result = redis.command("GET", key);
+        result = redis.command("SET", "key", "value");
     
-        std::cout << "SET " << key << ": " << value << "\n";
-        std::cout << "GET " << key << ": " << result.toString() << "\n";
-        
-        return EXIT_SUCCESS;
+        if( result.isError() )
+        {
+            std::cerr << "SET error: " << result.toString() << "\n";
+            return EXIT_FAILURE;
+        }
+    
+        result = redis.command("GET", "key");
+    
+        if( result.isOk() )
+        {
+            std::cout << "GET " << key << ": " << result.toString() << "\n";
+            return EXIT_SUCCESS;
+        }
+        else
+        {
+            std::cerr << "GET error: " << result.toString() << "\n";
+            return EXIT_FAILURE;
+        }
     }
 
 Async get/set example:

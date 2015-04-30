@@ -14,11 +14,14 @@
 
 class RedisValue {
 public:
+    struct ErrorTag {};
+
     REDIS_CLIENT_DECL RedisValue();
     REDIS_CLIENT_DECL RedisValue(int i);
     REDIS_CLIENT_DECL RedisValue(const char *s);
     REDIS_CLIENT_DECL RedisValue(const std::string &s);
     REDIS_CLIENT_DECL RedisValue(const std::vector<char> &buf);
+    REDIS_CLIENT_DECL RedisValue(const std::vector<char> &buf, struct ErrorTag &);
     REDIS_CLIENT_DECL RedisValue(const std::vector<RedisValue> &array);
 
     // Return the value as a std::string if 
@@ -40,6 +43,12 @@ public:
     // Return the string representation of the value. Use
     // for dump content of the value.
     REDIS_CLIENT_DECL std::string inspect() const;
+
+    // Return true if value not a error
+    REDIS_CLIENT_DECL bool isOk() const;
+    // Return true if value is a error
+    REDIS_CLIENT_DECL bool isError() const;
+
 
     // Return true if this is a null.
     REDIS_CLIENT_DECL bool isNull() const;
@@ -71,6 +80,7 @@ private:
 
 
     boost::variant<NullTag, int, std::vector<char>, std::vector<RedisValue> > value;
+    bool error;
 };
 
 

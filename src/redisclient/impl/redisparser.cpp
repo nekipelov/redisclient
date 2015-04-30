@@ -195,11 +195,24 @@ std::pair<size_t, RedisParser::ParseResult> RedisParser::parseChunk(const char *
                 }
                 break;
             case StringLF:
-            case ErrorLF:
                 if( c == '\n')
                 {
                     state = Start;
                     valueStack.push(buf);
+                    return std::make_pair(i + 1, Completed);
+                }
+                else
+                {
+                    state = Start;
+                    return std::make_pair(i + 1, Error);
+                }
+                break;
+            case ErrorLF:
+                if( c == '\n')
+                {
+                    state = Start;
+                    RedisValue::ErrorTag tag;
+                    valueStack.push(RedisValue(buf, tag));
                     return std::make_pair(i + 1, Completed);
                 }
                 else
