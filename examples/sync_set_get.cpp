@@ -34,7 +34,7 @@ int main(int, char **)
 
     if( result.isOk() )
     {
-        std::cout << "GET " << key << ": " << result.toString() << "\n";
+        std::cout << "GET: " << result.toString() << "\n";
         return EXIT_SUCCESS;
     }
     else
