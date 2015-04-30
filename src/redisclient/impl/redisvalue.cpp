@@ -6,31 +6,42 @@
 #ifndef REDISCLIENT_REDISVALUE_CPP
 #define REDISCLIENT_REDISVALUE_CPP
 
+#include <string.h>
 #include <boost/lexical_cast.hpp>
 #include "../redisvalue.h"
 
 RedisValue::RedisValue()
-    : value(NullTag())
+    : value(NullTag()), error(false)
 {
 }
 
 RedisValue::RedisValue(int i)
-    : value(i)
+    : value(i), error(false)
 {
 }
 
 RedisValue::RedisValue(const char *s)
-    : value( std::string(s) )
+    : value( std::vector<char>(s, s + strlen(s)) ), error(false)
 {
 }
 
 RedisValue::RedisValue(const std::string &s)
-    : value(s)
+    : value( std::vector<char>(s.begin(), s.end()) ), error(false)
+{
+}
+
+RedisValue::RedisValue(const std::vector<char> &buf)
+    : value(buf), error(false)
+{
+}
+
+RedisValue::RedisValue(const std::vector<char> &buf, struct ErrorTag &)
+    : value(buf), error(true)
 {
 }
 
 RedisValue::RedisValue(const std::vector<RedisValue> &array)
-    : value(array)
+    : value(array), error(false)
 {
 }
 
@@ -41,7 +52,13 @@ std::vector<RedisValue> RedisValue::toArray() const
 
 std::string RedisValue::toString() const
 {
-    return castTo<std::string>();
+    const std::vector<char> &buf = toByteArray();
+    return std::string(buf.begin(), buf.end());
+}
+
+std::vector<char> RedisValue::toByteArray() const
+{
+    return castTo<std::vector<char> >();
 }
 
 int RedisValue::toInt() const
@@ -51,7 +68,17 @@ int RedisValue::toInt() const
 
 std::string RedisValue::inspect() const
 {
-    if( isNull() )
+    if( isError() )
+    {
+        static std::string err = "error: ";
+        std::string result;
+
+        result = err;
+        result += toString();
+
+        return result;
+    }
+    else if( isNull() )
     {
         static std::string null = "(null)";
         return null;
@@ -89,6 +116,16 @@ std::string RedisValue::inspect() const
     }
 }
 
+bool RedisValue::isOk() const
+{
+    return !isError();
+}
+
+bool RedisValue::isError() const
+{
+    return error;
+}
+
 bool RedisValue::isNull() const
 {
     return typeEq<NullTag>();
@@ -101,7 +138,12 @@ bool RedisValue::isInt() const
 
 bool RedisValue::isString() const
 {
-    return typeEq<std::string>();
+    return typeEq<std::vector<char> >();
+}
+
+bool RedisValue::isByteArray() const
+{
+    return typeEq<std::vector<char> >();
 }
 
 bool RedisValue::isArray() const

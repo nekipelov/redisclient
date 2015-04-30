@@ -3,7 +3,7 @@
 #include <boost/asio/ip/address.hpp>
 #include <boost/bind.hpp>
 
-#include <redisclient/redisclient.h>
+#include <redisclient/redisasyncclient.h>
 
 static const std::string redisKey = "unique-redis-key-example";
 static const std::string redisValue = "unique-redis-value";
@@ -11,7 +11,7 @@ static const std::string redisValue = "unique-redis-value";
 class Worker
 {
 public:
-    Worker(boost::asio::io_service &ioService, RedisClient &redisClient)
+    Worker(boost::asio::io_service &ioService, RedisAsyncClient &redisClient)
         : ioService(ioService), redisClient(redisClient)
     {}
 
@@ -22,7 +22,7 @@ public:
 
 private:
     boost::asio::io_service &ioService;
-    RedisClient &redisClient;
+    RedisAsyncClient &redisClient;
 };
 
 void Worker::onConnect(bool connected, const std::string &errorMessage)
@@ -40,6 +40,7 @@ void Worker::onConnect(bool connected, const std::string &errorMessage)
 
 void Worker::onSet(const RedisValue &value)
 {
+    std::cerr << "SET: " << value.toString() << std::endl;
     if( value.toString() == "OK" )
     {
         redisClient.command("GET",  redisKey,
@@ -53,6 +54,7 @@ void Worker::onSet(const RedisValue &value)
 
 void Worker::onGet(const RedisValue &value)
 {
+    std::cerr << "GET " << value.toString() << std::endl;
     if( value.toString() != redisValue )
     {
         std::cerr << "Invalid value from redis: " << value.toString() << std::endl;
@@ -69,7 +71,7 @@ int main(int, char **)
     const int port = 6379;
 
     boost::asio::io_service ioService;
-    RedisClient client(ioService);
+    RedisAsyncClient client(ioService);
     Worker worker(ioService, client);
     boost::asio::ip::tcp::endpoint endpoint(boost::asio::ip::address::from_string(address), port);
 

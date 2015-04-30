@@ -18,8 +18,8 @@
 #include <queue>
 #include <map>
 
-#include "../redisclient.h"
 #include "../redisparser.h"
+#include "../redisbuffer.h"
 #include "../config.h"
 
 class RedisClientImpl : public boost::enable_shared_from_this<RedisClientImpl> {
@@ -33,8 +33,12 @@ public:
 
     REDIS_CLIENT_DECL void close();
 
-    REDIS_CLIENT_DECL void doCommand(
-            const std::vector<std::string> &command,
+    REDIS_CLIENT_DECL static std::vector<char> makeCommand(const std::vector<RedisBuffer> &items);
+
+    REDIS_CLIENT_DECL RedisValue doSyncCommand(const std::vector<RedisBuffer> &buff);
+
+    REDIS_CLIENT_DECL void doAsyncCommand(
+            const std::vector<char> &buff,
             const boost::function<void(const RedisValue &)> &handler);
 
     REDIS_CLIENT_DECL void sendNextCommand();
@@ -44,14 +48,15 @@ public:
     REDIS_CLIENT_DECL void asyncRead(const boost::system::error_code &ec, const size_t);
 
     REDIS_CLIENT_DECL void onRedisError(const RedisValue &);
-    REDIS_CLIENT_DECL void onError(const std::string &s);
     REDIS_CLIENT_DECL void defaulErrorHandler(const std::string &s);
+    REDIS_CLIENT_DECL static void ignoreErrorHandler(const std::string &s);
 
+    REDIS_CLIENT_DECL static void append(std::vector<char> &vec, const RedisBuffer &buf);
     REDIS_CLIENT_DECL static void append(std::vector<char> &vec, const std::string &s);
     REDIS_CLIENT_DECL static void append(std::vector<char> &vec, const char *s);
     REDIS_CLIENT_DECL static void append(std::vector<char> &vec, char c);
     template<size_t size>
-    REDIS_CLIENT_DECL static void append(std::vector<char> &vec, const char s[size]);
+    REDIS_CLIENT_DECL static void append(std::vector<char> &vec, const char (&s)[size]);
 
     template<typename Handler>
     REDIS_CLIENT_DECL void post(const Handler &handler);
@@ -69,8 +74,8 @@ public:
     boost::array<char, 4096> buf;
     size_t subscribeSeq;
 
-    typedef std::pair<size_t, boost::function<void(const std::string &s)> > MsgHandlerType;
-    typedef boost::function<void(const std::string &s)> SingleShotHandlerType;
+    typedef std::pair<size_t, boost::function<void(const std::vector<char> &buf)> > MsgHandlerType;
+    typedef boost::function<void(const std::vector<char> &buf)> SingleShotHandlerType;
 
     typedef std::multimap<std::string, MsgHandlerType> MsgHandlersMap;
     typedef std::multimap<std::string, SingleShotHandlerType> SingleShotHandlersMap;

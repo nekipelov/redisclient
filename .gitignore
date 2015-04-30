@@ -1,4 +1,3 @@
-# Qt Creator files
 *.o
 *.so
 examples/example[1-4]
