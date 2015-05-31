@@ -41,7 +41,7 @@ bool RedisSyncClient::connect(const boost::asio::ip::tcp::endpoint &endpoint,
     if( !ec )
     {
         pimpl->state = RedisClientImpl::Connected;
-        pimpl->processMessage();
+        //pimpl->processMessage();
         return true;
     }
     else
