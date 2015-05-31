@@ -248,8 +248,8 @@ std::pair<size_t, RedisParser::ParseResult> RedisParser::parseChunk(const char *
                     {
                         buf.reserve(bulkSize);
 
-                        long int available = long(size - i - 1);
-                        long int canRead = long(std::min(bulkSize, available));
+                        long int available = static_cast<long int>(size - i - 1);
+                        long int canRead = std::min(bulkSize, available);
 
                         if( canRead > 0 )
                         {
@@ -279,7 +279,7 @@ std::pair<size_t, RedisParser::ParseResult> RedisParser::parseChunk(const char *
             case Bulk: {
                 assert( bulkSize > 0 );
 
-                long int available = long(size - i);
+                long int available = static_cast<long int>(size - i);
                 long int canRead = std::min(available, bulkSize);
 
                 buf.insert(buf.end(), ptr + i, ptr + canRead);
