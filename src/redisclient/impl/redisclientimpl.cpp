@@ -319,22 +319,10 @@ void RedisClientImpl::append(std::vector<char> &vec, const char *s)
     vec.insert(vec.end(), s, s + strlen(s));
 }
 
-template<size_t size>
-void RedisClientImpl::append(std::vector<char> &vec, const char (&s)[size])
-{
-    vec.insert(vec.end(), s, s + size);
-}
-
 void RedisClientImpl::append(std::vector<char> &vec, char c)
 {
     vec.resize(vec.size() + 1);
     vec[vec.size() - 1] = c;
-}
-
-template<typename Handler>
-void RedisClientImpl::post(const Handler &handler)
-{
-    strand.post(handler);
 }
 
 #endif // REDISCLIENT_REDISCLIENTIMPL_CPP

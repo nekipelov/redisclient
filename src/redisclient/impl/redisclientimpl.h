@@ -56,10 +56,10 @@ public:
     REDIS_CLIENT_DECL static void append(std::vector<char> &vec, const char *s);
     REDIS_CLIENT_DECL static void append(std::vector<char> &vec, char c);
     template<size_t size>
-    REDIS_CLIENT_DECL static void append(std::vector<char> &vec, const char (&s)[size]);
+    static inline void append(std::vector<char> &vec, const char (&s)[size]);
 
     template<typename Handler>
-    REDIS_CLIENT_DECL void post(const Handler &handler);
+    inline void post(const Handler &handler);
 
     enum {
         NotConnected,
@@ -93,6 +93,19 @@ public:
 
     boost::function<void(const std::string &)> errorHandler;
 };
+
+template<size_t size>
+void RedisClientImpl::append(std::vector<char> &vec, const char (&s)[size])
+{
+    vec.insert(vec.end(), s, s + size);
+}
+
+template<typename Handler>
+inline void RedisClientImpl::post(const Handler &handler)
+{
+    strand.post(handler);
+}
+
 
 #ifdef REDIS_CLIENT_HEADER_ONLY
 #include "redisclientimpl.cpp"
