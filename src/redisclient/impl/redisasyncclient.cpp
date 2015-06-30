@@ -7,6 +7,8 @@
 #define REDISASYNCCLIENT_REDISASYNCCLIENT_CPP
 
 #include <boost/make_shared.hpp>
+#include <boost/bind.hpp>
+
 #include "../redisclient.h"
 
 RedisAsyncClient::RedisAsyncClient(boost::asio::io_service &ioService)
