@@ -220,6 +220,7 @@ RedisValue RedisClientImpl::doSyncCommand(const std::vector<RedisBuffer> &buff)
                 }
                 else if( result.second == RedisParser::Incompleted )
                 {
+                    pos += result.first;
                     continue;
                 }
                 else
@@ -227,8 +228,6 @@ RedisValue RedisClientImpl::doSyncCommand(const std::vector<RedisBuffer> &buff)
                     errorHandler("[RedisClient] Parser error");
                     return RedisValue();
                 }
-
-                pos += result.first;
             }
         }
     }
