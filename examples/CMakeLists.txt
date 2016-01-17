@@ -7,20 +7,20 @@ SET(CMAKE_CXX_FLAGS_DEBUG "-O0 -g3 -DDEBUG ")
 SET(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 
 SET(REDISCLIENT_SOURCES
-    ${CMAKE_SOURCE_DIR}/src/redisclient/impl/redisvalue.cpp
-    ${CMAKE_SOURCE_DIR}/src/redisclient/impl/redissyncclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/redisclient/impl/redisparser.cpp
-    ${CMAKE_SOURCE_DIR}/src/redisclient/impl/redisclientimpl.cpp
-    ${CMAKE_SOURCE_DIR}/src/redisclient/impl/redisasyncclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/redisclient/config.h
-    ${CMAKE_SOURCE_DIR}/src/redisclient/version.h
-    ${CMAKE_SOURCE_DIR}/src/redisclient/redisvalue.h
-    ${CMAKE_SOURCE_DIR}/src/redisclient/redissyncclient.h
-    ${CMAKE_SOURCE_DIR}/src/redisclient/redisparser.h
-    ${CMAKE_SOURCE_DIR}/src/redisclient/redisclient.h
-    ${CMAKE_SOURCE_DIR}/src/redisclient/redisbuffer.h
-    ${CMAKE_SOURCE_DIR}/src/redisclient/redisasyncclient.h
-    ${CMAKE_SOURCE_DIR}/src/redisclient/impl/redisclientimpl.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/redisclient/impl/redisvalue.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/redisclient/impl/redissyncclient.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/redisclient/impl/redisparser.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/redisclient/impl/redisclientimpl.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/redisclient/impl/redisasyncclient.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/redisclient/config.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/redisclient/version.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/redisclient/redisvalue.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/redisclient/redissyncclient.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/redisclient/redisparser.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/redisclient/redisclient.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/redisclient/redisbuffer.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/redisclient/redisasyncclient.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/redisclient/impl/redisclientimpl.h
 )
 
 INCLUDE_DIRECTORIES(
