@@ -4,6 +4,12 @@ PROJECT(RedisClient)
 
 FIND_PACKAGE(Boost COMPONENTS unit_test_framework system REQUIRED)
 
+
+if(NOT CMAKE_BUILD_TYPE)
+    message(STATUS "No build type selected, default to Release")
+    set(CMAKE_BUILD_TYPE "Release")
+endif()
+
 SET(CMAKE_CXX_FLAGS "-W -Wall -Wextra -Wshadow -fPIC -pthread")
 SET(CMAKE_CXX_FLAGS_DEBUG "-O0 -g3 -DDEBUG ")
 SET(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
