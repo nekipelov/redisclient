@@ -2,29 +2,158 @@
 #include <iostream>
 #include <boost/bind.hpp>
 #include <boost/asio/ip/address.hpp>
+#include <boost/format.hpp>
+
 
 #include <redisclient/redisasyncclient.h>
 
 static const std::string channelName = "unique-redis-channel-name-example";
+static const boost::posix_time::seconds timeout(1);
 
-void subscribeHandler(boost::asio::io_service &ioService, const std::vector<char> &buf)
+class Client
 {
-    std::string msg(buf.begin(), buf.end());
+public:
+    Client(boost::asio::io_service &ioService,
+           const boost::asio::ip::address &address,
+           unsigned short port)
+        : ioService(ioService), publishTimer(ioService),
+          connectSubscriberTimer(ioService), connectPublisherTimer(ioService),
+          address(address), port(port),
+          publisher(ioService), subscriber(ioService)
+    {
+        publisher.installErrorHandler(boost::bind(&Client::connectPublisher, this));
+        subscriber.installErrorHandler(boost::bind(&Client::connectSubscriber, this));
+        //publisher.installErrorHandler(boost::bind(&Client::errorPubProxy, this, _1));
+        //subscriber.installErrorHandler(boost::bind(&Client::errorSubProxy, this, _1));
+    }
 
-    std::cerr << "Message: " << msg << std::endl;
+    void publish(const std::string &str)
+    {
+        publisher.publish(channelName, str);
+    }
 
-    if( msg == "stop" )
-        ioService.stop();
-}
+    void start()
+    {
+        connectPublisher();
+        connectSubscriber();
+    }
 
-void publishHandler(RedisAsyncClient &publisher, const RedisValue &)
-{
-    publisher.publish(channelName, "First hello", [&](const RedisValue &) {
-        publisher.publish(channelName, "Last hello", [&](const RedisValue &) {
-            publisher.publish(channelName, "stop");
+protected:
+    void errorPubProxy(const std::string &err)
+    {
+        publishTimer.cancel();
+        connectPublisher();
+    }
+
+    void errorSubProxy(const std::string &err)
+    {
+        connectSubscriber();
+    }
+
+    void connectPublisher()
+    {
+        std::cerr << "connectPublisher\n";
+
+        if( publisher.isConnected() )
+        {
+            std::cerr << "disconnectPublisher\n";
+
+            publisher.disconnect();
+            publishTimer.cancel();
+        }
+
+        publisher.connect(address, port,
+                          boost::bind(&Client::onPublisherConnected, this, _1, _2));
+    }
+
+    void connectSubscriber()
+    {
+        std::cerr << "connectSubscriber\n";
+
+        if( subscriber.isConnected() )
+        {
+            std::cerr << "disconnectSubscriber\n";
+            subscriber.disconnect();
+        }
+
+        subscriber.connect(address, port,
+                           boost::bind(&Client::onSubscriberConnected, this, _1, _2));
+    }
+
+    void callLater(boost::asio::deadline_timer &timer,
+                   void(Client::*callback)())
+    {
+        std::cerr << "callLater\n";
+        timer.expires_from_now(timeout);
+        timer.async_wait([callback, this](const boost::system::error_code &ec) {
+            if( !ec )
+            {
+                (this->*callback)();
+            }
         });
-    });
-}
+    }
+
+    void onPublishTimeout()
+    {
+        static size_t counter = 0;
+        std::string msg = str(boost::format("message %1%")  % counter++);
+
+        if( publisher.isConnected() )
+        {
+            std::cerr << "pub " << msg << "\n";
+            publish(msg);
+        }
+
+        callLater(publishTimer, &Client::onPublishTimeout);
+    }
+
+    void onPublisherConnected(bool status, const std::string &error)
+    {
+        if( !status )
+        {
+            std::cerr << "onPublisherConnected: can't connect to redis: " << error << "\n";
+            callLater(connectPublisherTimer, &Client::connectPublisher);
+        }
+        else
+        {
+            std::cerr << "onPublisherConnected ok\n";
+
+            callLater(publishTimer, &Client::onPublishTimeout);
+        }
+    }
+
+    void onSubscriberConnected(bool status, const std::string &error)
+    {
+        if( !status )
+        {
+            std::cerr << "onSubscriberConnected: can't connect to redis: " << error << "\n";
+            callLater(connectSubscriberTimer, &Client::connectSubscriber);
+        }
+        else
+        {
+            std::cerr << "onSubscriberConnected ok\n";
+            subscriber.subscribe(channelName,
+                                 boost::bind(&Client::onMessage, this, _1));
+        }
+    }
+
+    void onMessage(const std::vector<char> &buf)
+    {
+        std::string s(buf.begin(), buf.end());
+        std::cout << "onMessage: " << s << "\n";
+    }
+
+private:
+    boost::asio::io_service &ioService;
+    boost::asio::deadline_timer publishTimer;
+    boost::asio::deadline_timer connectSubscriberTimer;
+    boost::asio::deadline_timer connectPublisherTimer;
+    const boost::asio::ip::address address;
+    const unsigned short port;
+
+    RedisAsyncClient publisher;
+    RedisAsyncClient subscriber;
+};
 
 int main(int, char **)
 {
@@ -32,35 +161,13 @@ int main(int, char **)
     const unsigned short port = 6379;
 
     boost::asio::io_service ioService;
-    RedisAsyncClient publisher(ioService);
-    RedisAsyncClient subscriber(ioService);
 
+    Client client(ioService, address, port);
 
-    publisher.asyncConnect(address, port, [&](bool status, const std::string &err)
-    {
-        if( !status )
-        {
-            std::cerr << "Can't connect to to redis" << err << std::endl;
-        }
-        else
-        {
-            subscriber.asyncConnect(address, port, [&](bool status, const std::string &err)
-            {
-                if( !status )
-                {
-                    std::cerr << "Can't connect to to redis" << err << std::endl;
-                }
-                else
-                {
-                    subscriber.subscribe(channelName,
-                            boost::bind(&subscribeHandler, boost::ref(ioService), _1),
-                            boost::bind(&publishHandler, boost::ref(publisher), _1));
-                }
-            });
-        }
-    });
-
+    client.start();
     ioService.run();
+
+    std::cerr << "done\n";
 
     return 0;
 }
