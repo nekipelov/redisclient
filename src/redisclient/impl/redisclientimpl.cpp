@@ -15,7 +15,7 @@
 #include "redisclientimpl.h"
 
 RedisClientImpl::RedisClientImpl(boost::asio::io_service &ioService)
-    : state(NotConnected), strand(ioService), socket(ioService), subscribeSeq(0)
+    : strand(ioService), socket(ioService), subscribeSeq(0), state(NotConnected)
 {
 }
 
@@ -30,12 +30,19 @@ void RedisClientImpl::close()
     {
         boost::system::error_code ignored_ec;
 
-        errorHandler = boost::bind(&RedisClientImpl::ignoreErrorHandler, _1);
+        msgHandlers.clear();
+
         socket.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored_ec);
+        socket.close(ignored_ec);
+
         state = RedisClientImpl::Closed;
     }
 }
 
+RedisClientImpl::State RedisClientImpl::getState() const
+{
+    return state;
+}
 
 void RedisClientImpl::processMessage()
 {
@@ -292,15 +299,9 @@ void RedisClientImpl::onRedisError(const RedisValue &v)
     errorHandler(message);
 }
 
-
 void RedisClientImpl::defaulErrorHandler(const std::string &s)
 {
     throw std::runtime_error(s);
-}
-
-void RedisClientImpl::ignoreErrorHandler(const std::string &)
-{
-    // empty
 }
 
 void RedisClientImpl::append(std::vector<char> &vec, const RedisBuffer &buf)

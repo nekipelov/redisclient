@@ -59,6 +59,11 @@ public:
         connect(endpoint, handler);
     }
 
+    // return true if is connected to redis
+    REDIS_CLIENT_DECL bool isConnected() const;
+
+    // disconnect from redis and clear command queue
+    REDIS_CLIENT_DECL void disconnect();
 
     // Set custom error handler. 
     REDIS_CLIENT_DECL void installErrorHandler(

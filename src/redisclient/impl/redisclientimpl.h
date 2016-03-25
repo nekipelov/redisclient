@@ -24,6 +24,13 @@
 
 class RedisClientImpl : public boost::enable_shared_from_this<RedisClientImpl> {
 public:
+    enum State {
+        NotConnected,
+        Connected,
+        Subscribed,
+        Closed
+    };
+
     REDIS_CLIENT_DECL RedisClientImpl(boost::asio::io_service &ioService);
     REDIS_CLIENT_DECL ~RedisClientImpl();
 
@@ -32,6 +39,8 @@ public:
             const boost::function<void(bool, const std::string &)> &handler);
 
     REDIS_CLIENT_DECL void close();
+
+    REDIS_CLIENT_DECL State getState() const;
 
     REDIS_CLIENT_DECL static std::vector<char> makeCommand(const std::vector<RedisBuffer> &items);
 
@@ -49,7 +58,6 @@ public:
 
     REDIS_CLIENT_DECL void onRedisError(const RedisValue &);
     REDIS_CLIENT_DECL void defaulErrorHandler(const std::string &s);
-    REDIS_CLIENT_DECL static void ignoreErrorHandler(const std::string &s);
 
     REDIS_CLIENT_DECL static void append(std::vector<char> &vec, const RedisBuffer &buf);
     REDIS_CLIENT_DECL static void append(std::vector<char> &vec, const std::string &s);
@@ -60,13 +68,6 @@ public:
 
     template<typename Handler>
     inline void post(const Handler &handler);
-
-    enum {
-        NotConnected,
-        Connected,
-        Subscribed,
-        Closed 
-    } state;
 
     boost::asio::strand strand;
     boost::asio::ip::tcp::socket socket;
@@ -92,6 +93,7 @@ public:
     std::queue<QueueItem> queue;
 
     boost::function<void(const std::string &)> errorHandler;
+    State state;
 };
 
 template<size_t size>
