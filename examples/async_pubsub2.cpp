@@ -52,7 +52,7 @@ int main(int, char **)
     {
         if( !status )
         {
-            std::cerr << "Can't connect to to redis" << err << std::endl;
+            std::cerr << "Can't connect to redis: " << err << std::endl;
         }
         else
         {
@@ -60,7 +60,7 @@ int main(int, char **)
             {
                 if( !status )
                 {
-                    std::cerr << "Can't connect to to redis" << err << std::endl;
+                    std::cerr << "Can't connect to redis: " << err << std::endl;
                 }
                 else
                 {
