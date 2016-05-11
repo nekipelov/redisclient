@@ -15,7 +15,7 @@ RedisValue::RedisValue()
 {
 }
 
-RedisValue::RedisValue(int i)
+RedisValue::RedisValue(int64_t i)
     : value(i), error(false)
 {
 }
@@ -61,9 +61,9 @@ std::vector<char> RedisValue::toByteArray() const
     return castTo<std::vector<char> >();
 }
 
-int RedisValue::toInt() const
+int64_t RedisValue::toInt() const
 {
-    return castTo<int>();
+    return castTo<int64_t>();
 }
 
 std::string RedisValue::inspect() const
@@ -133,7 +133,7 @@ bool RedisValue::isNull() const
 
 bool RedisValue::isInt() const
 {
-    return typeEq<int>();
+    return typeEq<int64_t>();
 }
 
 bool RedisValue::isString() const

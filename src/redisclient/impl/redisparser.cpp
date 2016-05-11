@@ -423,7 +423,7 @@ std::pair<size_t, RedisParser::ParseResult> RedisParser::parseChunk(const char *
                 {
                     // TODO optimize me
                     std::string tmp(buf.begin(), buf.end());
-                    long int value = strtol(tmp.c_str(), 0, 10);
+                    int64_t value = strtoll(tmp.c_str(), 0, 10);
 
                     buf.clear();
 
