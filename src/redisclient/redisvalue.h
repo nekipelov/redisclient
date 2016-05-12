@@ -17,7 +17,7 @@ public:
     struct ErrorTag {};
 
     REDIS_CLIENT_DECL RedisValue();
-    REDIS_CLIENT_DECL RedisValue(int i);
+    REDIS_CLIENT_DECL RedisValue(int64_t i);
     REDIS_CLIENT_DECL RedisValue(const char *s);
     REDIS_CLIENT_DECL RedisValue(const std::string &s);
     REDIS_CLIENT_DECL RedisValue(const std::vector<char> &buf);
@@ -34,7 +34,7 @@ public:
     
     // Return the value as a std::vector<RedisValue> if 
     // type is an int; otherwise returns 0.
-    REDIS_CLIENT_DECL int toInt() const;
+    REDIS_CLIENT_DECL int64_t toInt() const;
     
     // Return the value as an array if type is an array;
     // otherwise returns an empty array.
@@ -79,7 +79,7 @@ private:
     };
 
 
-    boost::variant<NullTag, int, std::vector<char>, std::vector<RedisValue> > value;
+    boost::variant<NullTag, int64_t, std::vector<char>, std::vector<RedisValue> > value;
     bool error;
 };
 
