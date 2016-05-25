@@ -17,6 +17,7 @@
 #include <vector>
 #include <queue>
 #include <map>
+#include <atomic>
 
 #include "../redisparser.h"
 #include "../redisbuffer.h"
@@ -33,6 +34,9 @@ public:
 
     REDIS_CLIENT_DECL RedisClientImpl(boost::asio::io_service &ioService);
     REDIS_CLIENT_DECL ~RedisClientImpl();
+
+    REDIS_CLIENT_DECL void connect(const boost::asio::ip::tcp::endpoint &endpoint,
+            const boost::function<void(bool, const std::string &)> &handler);
 
     REDIS_CLIENT_DECL void handleAsyncConnect(
             const boost::system::error_code &ec,
@@ -58,7 +62,7 @@ public:
 
     REDIS_CLIENT_DECL void onRedisError(const RedisValue &);
     REDIS_CLIENT_DECL void defaulErrorHandler(const std::string &s);
-
+    
     REDIS_CLIENT_DECL static void append(std::vector<char> &vec, const RedisBuffer &buf);
     REDIS_CLIENT_DECL static void append(std::vector<char> &vec, const std::string &s);
     REDIS_CLIENT_DECL static void append(std::vector<char> &vec, const char *s);
@@ -93,7 +97,7 @@ public:
     std::queue<QueueItem> queue;
 
     boost::function<void(const std::string &)> errorHandler;
-    State state;
+    std::atomic<State> state;
 };
 
 template<size_t size>

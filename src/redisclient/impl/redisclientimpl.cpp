@@ -24,6 +24,14 @@ RedisClientImpl::~RedisClientImpl()
     close();
 }
 
+void RedisClientImpl::connect(const boost::asio::ip::tcp::endpoint &endpoint,
+    const boost::function<void(bool, const std::string &)> &handler)
+{
+    socket.async_connect(endpoint,
+        strand.wrap(bind(&RedisClientImpl::handleAsyncConnect,
+            shared_from_this(), _1, handler)));
+}
+
 void RedisClientImpl::close()
 {
     if( state != RedisClientImpl::Closed )
@@ -49,8 +57,8 @@ void RedisClientImpl::processMessage()
     using boost::system::error_code;
 
     socket.async_read_some(boost::asio::buffer(buf),
-                           boost::bind(&RedisClientImpl::asyncRead,
-                                       shared_from_this(), _1, _2));
+                           strand.wrap(bind(&RedisClientImpl::asyncRead,
+                                            shared_from_this(), _1, _2)));
 }
 
 void RedisClientImpl::doProcessMessage(const RedisValue &v)
@@ -146,9 +154,9 @@ void RedisClientImpl::asyncWrite(const boost::system::error_code &ec, const size
     {
         const QueueItem &item = queue.front();
         
-        boost::asio::async_write(socket,
+         boost::asio::async_write(socket,
                                  boost::asio::buffer(item.buff->data(), item.buff->size()),
-                                 boost::bind(&RedisClientImpl::asyncWrite, shared_from_this(), _1, _2));
+                                 strand.wrap(bind(&RedisClientImpl::asyncWrite, shared_from_this(), _1, _2)));
     }
 }
 
@@ -253,9 +261,9 @@ void RedisClientImpl::doAsyncCommand(const std::vector<char> &buff,
 
     if( queue.size() == 1 )
     {
-        boost::asio::async_write(socket, 
+         boost::asio::async_write(socket, 
                                  boost::asio::buffer(item.buff->data(), item.buff->size()),
-                                 boost::bind(&RedisClientImpl::asyncWrite, shared_from_this(), _1, _2));
+                                 strand.wrap(bind(&RedisClientImpl::asyncWrite, shared_from_this(), _1, _2)));
     }
 }
 
