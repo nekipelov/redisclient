@@ -32,6 +32,12 @@ public:
         Closed
     };
 
+    typedef std::pair<size_t, boost::function<void(const std::vector<char> &buf)> > MsgHandlerType;
+    typedef boost::function<void(const std::vector<char> &buf)> SingleShotHandlerType;
+
+    typedef std::multimap<std::string, MsgHandlerType> MsgHandlersMap;
+    typedef std::multimap<std::string, SingleShotHandlerType> SingleShotHandlersMap;
+
     REDIS_CLIENT_DECL RedisClientImpl(boost::asio::io_service &ioService);
     REDIS_CLIENT_DECL ~RedisClientImpl();
 
@@ -53,6 +59,22 @@ public:
     REDIS_CLIENT_DECL void doAsyncCommand(
             const std::vector<char> &buff,
             const boost::function<void(const RedisValue &)> &handler);
+
+    REDIS_CLIENT_DECL void subscribe(
+        const std::vector<char> &buff,
+        const std::pair<std::string, MsgHandlerType> &msgHandler,
+        const boost::function<void(const RedisValue &)> &handler);
+
+    REDIS_CLIENT_DECL void unsubscribe(
+        const std::vector<char> &buff,
+        const size_t id,
+        const std::string &channel,
+        const boost::function<void(const RedisValue&)> &handler);
+
+    REDIS_CLIENT_DECL void singleShotSubscribe(
+        const std::vector<char> &buff,
+        const std::pair<std::string, SingleShotHandlerType> &singleShotMsgHandler,
+        const boost::function<void(const RedisValue &)> &handler);
 
     REDIS_CLIENT_DECL void sendNextCommand();
     REDIS_CLIENT_DECL void processMessage();
@@ -78,12 +100,6 @@ public:
     RedisParser redisParser;
     boost::array<char, 4096> buf;
     size_t subscribeSeq;
-
-    typedef std::pair<size_t, boost::function<void(const std::vector<char> &buf)> > MsgHandlerType;
-    typedef boost::function<void(const std::vector<char> &buf)> SingleShotHandlerType;
-
-    typedef std::multimap<std::string, MsgHandlerType> MsgHandlersMap;
-    typedef std::multimap<std::string, SingleShotHandlerType> SingleShotHandlersMap;
 
     std::queue<boost::function<void(const RedisValue &v)> > handlers;
     MsgHandlersMap msgHandlers;

@@ -267,6 +267,50 @@ void RedisClientImpl::doAsyncCommand(const std::vector<char> &buff,
     }
 }
 
+void RedisClientImpl::subscribe(
+    const std::vector<char> &buff,
+    const std::pair<std::string, MsgHandlerType> &pairMsgHandler,
+    const boost::function<void(const RedisValue &)> &handler)
+{
+    doAsyncCommand(buff, handler);
+    msgHandlers.insert(pairMsgHandler);
+    state = RedisClientImpl::Subscribed;
+}
+
+void RedisClientImpl::unsubscribe(
+    const std::vector<char> &buff,
+    const size_t id,
+    const std::string &channel,
+    const boost::function<void(const RedisValue&)> &handler)
+{
+    // Remove subscribe-handler
+    typedef RedisClientImpl::MsgHandlersMap::iterator iterator;
+    std::pair<iterator, iterator> pair = msgHandlers.equal_range(channel);
+
+    for (iterator it = pair.first; it != pair.second;)
+    {
+        if (it->second.first == id)
+        {
+            msgHandlers.erase(it++);
+        }
+        else
+        {
+            ++it;
+        }
+    }
+    doAsyncCommand(buff, handler);
+}
+
+void RedisClientImpl::singleShotSubscribe(
+    const std::vector<char> &buff,
+    const std::pair<std::string, SingleShotHandlerType> &pairSingleShotMsgHandler,
+    const boost::function<void(const RedisValue &)> &handler)
+{
+    doAsyncCommand(buff, handler);
+    singleShotMsgHandlers.insert(pairSingleShotMsgHandler);
+    state = RedisClientImpl::Subscribed;
+}
+
 void RedisClientImpl::asyncRead(const boost::system::error_code &ec, const size_t size)
 {
     if( ec || size == 0 )
