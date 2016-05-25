@@ -2,3 +2,4 @@
 *.so
 examples/example[1-4]
 tests/parsertest
+build_x64
