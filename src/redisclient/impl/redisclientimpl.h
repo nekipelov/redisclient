@@ -17,7 +17,6 @@
 #include <vector>
 #include <queue>
 #include <map>
-#include <atomic>
 
 #include "../redisparser.h"
 #include "../redisbuffer.h"
@@ -113,7 +112,7 @@ public:
     std::queue<QueueItem> queue;
 
     boost::function<void(const std::string &)> errorHandler;
-    std::atomic<State> state;
+    State state;
 };
 
 template<size_t size>
