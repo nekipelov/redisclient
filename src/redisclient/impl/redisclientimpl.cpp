@@ -24,6 +24,14 @@ RedisClientImpl::~RedisClientImpl()
     close();
 }
 
+void RedisClientImpl::connect(const boost::asio::ip::tcp::endpoint &endpoint,
+    const boost::function<void(bool, const std::string &)> &handler)
+{
+    socket.async_connect(endpoint,
+        strand.wrap(bind(&RedisClientImpl::handleAsyncConnect,
+            shared_from_this(), _1, handler)));
+}
+
 void RedisClientImpl::close()
 {
     if( state != RedisClientImpl::Closed )
@@ -49,8 +57,8 @@ void RedisClientImpl::processMessage()
     using boost::system::error_code;
 
     socket.async_read_some(boost::asio::buffer(buf),
-                           boost::bind(&RedisClientImpl::asyncRead,
-                                       shared_from_this(), _1, _2));
+                           strand.wrap(bind(&RedisClientImpl::asyncRead,
+                                            shared_from_this(), _1, _2)));
 }
 
 void RedisClientImpl::doProcessMessage(const RedisValue &v)
@@ -146,9 +154,9 @@ void RedisClientImpl::asyncWrite(const boost::system::error_code &ec, const size
     {
         const QueueItem &item = queue.front();
         
-        boost::asio::async_write(socket,
+         boost::asio::async_write(socket,
                                  boost::asio::buffer(item.buff->data(), item.buff->size()),
-                                 boost::bind(&RedisClientImpl::asyncWrite, shared_from_this(), _1, _2));
+                                 strand.wrap(bind(&RedisClientImpl::asyncWrite, shared_from_this(), _1, _2)));
     }
 }
 
@@ -253,10 +261,54 @@ void RedisClientImpl::doAsyncCommand(const std::vector<char> &buff,
 
     if( queue.size() == 1 )
     {
-        boost::asio::async_write(socket, 
+         boost::asio::async_write(socket, 
                                  boost::asio::buffer(item.buff->data(), item.buff->size()),
-                                 boost::bind(&RedisClientImpl::asyncWrite, shared_from_this(), _1, _2));
+                                 strand.wrap(bind(&RedisClientImpl::asyncWrite, shared_from_this(), _1, _2)));
     }
+}
+
+void RedisClientImpl::subscribe(
+    const std::vector<char> &buff,
+    const std::pair<std::string, MsgHandlerType> &pairMsgHandler,
+    const boost::function<void(const RedisValue &)> &handler)
+{
+    doAsyncCommand(buff, handler);
+    msgHandlers.insert(pairMsgHandler);
+    state = RedisClientImpl::Subscribed;
+}
+
+void RedisClientImpl::unsubscribe(
+    const std::vector<char> &buff,
+    const size_t id,
+    const std::string &channel,
+    const boost::function<void(const RedisValue&)> &handler)
+{
+    // Remove subscribe-handler
+    typedef RedisClientImpl::MsgHandlersMap::iterator iterator;
+    std::pair<iterator, iterator> pair = msgHandlers.equal_range(channel);
+
+    for (iterator it = pair.first; it != pair.second;)
+    {
+        if (it->second.first == id)
+        {
+            msgHandlers.erase(it++);
+        }
+        else
+        {
+            ++it;
+        }
+    }
+    doAsyncCommand(buff, handler);
+}
+
+void RedisClientImpl::singleShotSubscribe(
+    const std::vector<char> &buff,
+    const std::pair<std::string, SingleShotHandlerType> &pairSingleShotMsgHandler,
+    const boost::function<void(const RedisValue &)> &handler)
+{
+    doAsyncCommand(buff, handler);
+    singleShotMsgHandlers.insert(pairSingleShotMsgHandler);
+    state = RedisClientImpl::Subscribed;
 }
 
 void RedisClientImpl::asyncRead(const boost::system::error_code &ec, const size_t size)

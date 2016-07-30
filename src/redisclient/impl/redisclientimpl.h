@@ -31,8 +31,17 @@ public:
         Closed
     };
 
+    typedef std::pair<size_t, boost::function<void(const std::vector<char> &buf)> > MsgHandlerType;
+    typedef boost::function<void(const std::vector<char> &buf)> SingleShotHandlerType;
+
+    typedef std::multimap<std::string, MsgHandlerType> MsgHandlersMap;
+    typedef std::multimap<std::string, SingleShotHandlerType> SingleShotHandlersMap;
+
     REDIS_CLIENT_DECL RedisClientImpl(boost::asio::io_service &ioService);
     REDIS_CLIENT_DECL ~RedisClientImpl();
+
+    REDIS_CLIENT_DECL void connect(const boost::asio::ip::tcp::endpoint &endpoint,
+            const boost::function<void(bool, const std::string &)> &handler);
 
     REDIS_CLIENT_DECL void handleAsyncConnect(
             const boost::system::error_code &ec,
@@ -50,6 +59,22 @@ public:
             const std::vector<char> &buff,
             const boost::function<void(const RedisValue &)> &handler);
 
+    REDIS_CLIENT_DECL void subscribe(
+        const std::vector<char> &buff,
+        const std::pair<std::string, MsgHandlerType> &msgHandler,
+        const boost::function<void(const RedisValue &)> &handler);
+
+    REDIS_CLIENT_DECL void unsubscribe(
+        const std::vector<char> &buff,
+        const size_t id,
+        const std::string &channel,
+        const boost::function<void(const RedisValue&)> &handler);
+
+    REDIS_CLIENT_DECL void singleShotSubscribe(
+        const std::vector<char> &buff,
+        const std::pair<std::string, SingleShotHandlerType> &singleShotMsgHandler,
+        const boost::function<void(const RedisValue &)> &handler);
+
     REDIS_CLIENT_DECL void sendNextCommand();
     REDIS_CLIENT_DECL void processMessage();
     REDIS_CLIENT_DECL void doProcessMessage(const RedisValue &v);
@@ -58,7 +83,7 @@ public:
 
     REDIS_CLIENT_DECL void onRedisError(const RedisValue &);
     REDIS_CLIENT_DECL void defaulErrorHandler(const std::string &s);
-
+    
     REDIS_CLIENT_DECL static void append(std::vector<char> &vec, const RedisBuffer &buf);
     REDIS_CLIENT_DECL static void append(std::vector<char> &vec, const std::string &s);
     REDIS_CLIENT_DECL static void append(std::vector<char> &vec, const char *s);
@@ -74,12 +99,6 @@ public:
     RedisParser redisParser;
     boost::array<char, 4096> buf;
     size_t subscribeSeq;
-
-    typedef std::pair<size_t, boost::function<void(const std::vector<char> &buf)> > MsgHandlerType;
-    typedef boost::function<void(const std::vector<char> &buf)> SingleShotHandlerType;
-
-    typedef std::multimap<std::string, MsgHandlerType> MsgHandlersMap;
-    typedef std::multimap<std::string, SingleShotHandlerType> SingleShotHandlersMap;
 
     std::queue<boost::function<void(const RedisValue &v)> > handlers;
     MsgHandlersMap msgHandlers;
