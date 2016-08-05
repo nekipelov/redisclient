@@ -11,7 +11,7 @@ int main(int, char **)
     const unsigned short port = 6379;
 
     boost::asio::io_service ioService;
-    RedisSyncClient redis(ioService);
+    redisclient::RedisSyncClient redis(ioService);
     std::string errmsg;
 
     if( !redis.connect(address, port, errmsg) )
@@ -20,9 +20,9 @@ int main(int, char **)
         return EXIT_FAILURE;
     }
 
-    RedisValue result;
+    redisclient::RedisValue result;
 
-    result = redis.command("SET", "key", "value");
+    result = redis.command("SET", {"key", "value"});
 
     if( result.isError() )
     {
@@ -30,7 +30,7 @@ int main(int, char **)
         return EXIT_FAILURE;
     }
 
-    result = redis.command("GET", "key");
+    result = redis.command("GET", {"key"});
 
     if( result.isOk() )
     {

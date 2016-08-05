@@ -8,9 +8,12 @@
 
 #include <stack>
 #include <vector>
+#include <utility>
 
 #include "redisvalue.h"
 #include "config.h"
+
+namespace redisclient {
 
 class RedisParser
 {
@@ -31,15 +34,17 @@ protected:
     REDIS_CLIENT_DECL std::pair<size_t, ParseResult> parseChunk(const char *ptr, size_t size);
     REDIS_CLIENT_DECL std::pair<size_t, ParseResult> parseArray(const char *ptr, size_t size);
 
-    static inline bool isChar(int c)
+    inline bool isChar(int c)
     {
         return c >= 0 && c <= 127;
     }
 
-    static inline bool isControl(int c)
+    inline bool isControl(int c)
     {
         return (c >= 0 && c <= 31) || (c == 127);
     }
+
+    REDIS_CLIENT_DECL long int bufToLong(const char *str, size_t size);
 
 private:
     enum State {
@@ -76,6 +81,8 @@ private:
     static const char bulkReply = '$';
     static const char arrayReply = '*';
 };
+
+}
 
 #ifdef REDIS_CLIENT_HEADER_ONLY
 #include "impl/redisparser.cpp"

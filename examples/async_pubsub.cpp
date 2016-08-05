@@ -23,8 +23,6 @@ public:
     {
         publisher.installErrorHandler(boost::bind(&Client::connectPublisher, this));
         subscriber.installErrorHandler(boost::bind(&Client::connectSubscriber, this));
-        //publisher.installErrorHandler(boost::bind(&Client::errorPubProxy, this, _1));
-        //subscriber.installErrorHandler(boost::bind(&Client::errorSubProxy, this, _1));
     }
 
     void publish(const std::string &str)
@@ -39,13 +37,13 @@ public:
     }
 
 protected:
-    void errorPubProxy(const std::string &err)
+    void errorPubProxy(const std::string &)
     {
         publishTimer.cancel();
         connectPublisher();
     }
 
-    void errorSubProxy(const std::string &err)
+    void errorSubProxy(const std::string &)
     {
         connectSubscriber();
     }
@@ -151,8 +149,8 @@ private:
     const boost::asio::ip::address address;
     const unsigned short port;
 
-    RedisAsyncClient publisher;
-    RedisAsyncClient subscriber;
+    redisclient::RedisAsyncClient publisher;
+    redisclient::RedisAsyncClient subscriber;
 };
 
 int main(int, char **)

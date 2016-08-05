@@ -17,7 +17,6 @@ SET(REDISCLIENT_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/redisclient/redisvalue.h
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/redisclient/redissyncclient.h
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/redisclient/redisparser.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/../src/redisclient/redisclient.h
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/redisclient/redisbuffer.h
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/redisclient/redisasyncclient.h
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/redisclient/impl/redisclientimpl.h
@@ -36,8 +35,13 @@ SET(EXAMPLES
     sync_set_get.cpp
 )
 
+FOREACH(FILE ${REDISCLIENT_SOURCES})
+    SET_SOURCE_FILES_PROPERTIES(${FILE} PROPERTIES HEADER_FILE_ONLY TRUE)
+ENDFOREACH()
+
 FOREACH(EXAMPLE ${EXAMPLES})
     GET_FILENAME_COMPONENT(EXECUTABLE ${EXAMPLE} NAME_WE)
     ADD_EXECUTABLE(${EXECUTABLE} ${EXAMPLE} ${REDISCLIENT_SOURCES})
     TARGET_LINK_LIBRARIES(${EXECUTABLE} ${Boost_LIBRARIES})
 ENDFOREACH(EXAMPLE)
+

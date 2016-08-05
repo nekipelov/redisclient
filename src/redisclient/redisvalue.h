@@ -12,30 +12,38 @@
 
 #include "config.h"
 
+namespace redisclient {
+
 class RedisValue {
 public:
     struct ErrorTag {};
 
     REDIS_CLIENT_DECL RedisValue();
+    REDIS_CLIENT_DECL RedisValue(RedisValue &&other);
     REDIS_CLIENT_DECL RedisValue(int64_t i);
     REDIS_CLIENT_DECL RedisValue(const char *s);
     REDIS_CLIENT_DECL RedisValue(const std::string &s);
     REDIS_CLIENT_DECL RedisValue(const std::vector<char> &buf);
     REDIS_CLIENT_DECL RedisValue(const std::vector<char> &buf, struct ErrorTag &);
-    REDIS_CLIENT_DECL RedisValue(const std::vector<RedisValue> &array);
+    REDIS_CLIENT_DECL RedisValue(std::vector<RedisValue> array);
 
-    // Return the value as a std::string if 
+
+    RedisValue(const RedisValue &) = default;
+    RedisValue& operator = (const RedisValue &) = default;
+    RedisValue& operator = (RedisValue &&) = default;
+
+    // Return the value as a std::string if
     // type is a byte string; otherwise returns an empty std::string.
     REDIS_CLIENT_DECL std::string toString() const;
 
-    // Return the value as a std::vector<char> if 
+    // Return the value as a std::vector<char> if
     // type is a byte string; otherwise returns an empty std::vector<char>.
     REDIS_CLIENT_DECL std::vector<char> toByteArray() const;
-    
-    // Return the value as a std::vector<RedisValue> if 
+
+    // Return the value as a std::vector<RedisValue> if
     // type is an int; otherwise returns 0.
     REDIS_CLIENT_DECL int64_t toInt() const;
-    
+
     // Return the value as an array if type is an array;
     // otherwise returns an empty array.
     REDIS_CLIENT_DECL std::vector<RedisValue> toArray() const;
@@ -66,10 +74,10 @@ public:
 
 protected:
     template<typename T>
-    REDIS_CLIENT_DECL T castTo() const;
+     T castTo() const;
 
     template<typename T>
-    REDIS_CLIENT_DECL bool typeEq() const;
+    bool typeEq() const;
 
 private:
     struct NullTag {
@@ -100,6 +108,8 @@ bool RedisValue::typeEq() const
         return true;
     else
         return false;
+}
+
 }
 
 #ifdef REDIS_CLIENT_HEADER_ONLY

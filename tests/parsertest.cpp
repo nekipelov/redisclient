@@ -1,13 +1,16 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <redisclient/redisclient.h>
+#include <redisclient/redisparser.h>
+#include <redisclient/redisvalue.h>
 
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 #define BOOST_TEST_MODULE test_RedisParser
 
 #include <boost/test/unit_test.hpp>
+
+using namespace redisclient;
 
 void test(RedisParser &parser, const std::string &buf, const RedisValue &expected)
 {
@@ -32,7 +35,6 @@ void test(RedisParser &parser, const std::string &buf, const RedisValue &expecte
 //        BOOST_VERIFY(parser.arrayStack.empty());
     }
 }
-
 
 
 BOOST_AUTO_TEST_CASE(test_RedisParser)
@@ -129,3 +131,12 @@ BOOST_AUTO_TEST_CASE(test_RedisParser)
                      "bar\r\n", array);
     }
 }
+
+BOOST_AUTO_TEST_CASE(test_RedisParser_invalid_response)
+{
+    RedisParser parser;
+    std::string str = "*xx\r\n";
+
+    BOOST_REQUIRE(parser.parse(str.c_str(), str.size()).second == RedisParser::Error);
+}
+

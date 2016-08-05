@@ -14,6 +14,8 @@
 
 #include "config.h"
 
+namespace redisclient {
+
 class RedisBuffer
 {
 public:
@@ -67,5 +69,7 @@ const char *RedisBuffer::data() const
     return ptr_;
 }
 
-#endif //REDISSYNCCLIENT_REDISBUFFER_H 
+}
+
+#endif //REDISSYNCCLIENT_REDISBUFFER_H
 

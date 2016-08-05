@@ -12,11 +12,14 @@
 
 #include <string>
 #include <list>
+#include <type_traits>
 
 #include "impl/redisclientimpl.h"
 #include "redisvalue.h"
 #include "redisbuffer.h"
 #include "config.h"
+
+namespace redisclient {
 
 class RedisClientImpl;
 
@@ -65,65 +68,14 @@ public:
     // disconnect from redis and clear command queue
     REDIS_CLIENT_DECL void disconnect();
 
-    // Set custom error handler. 
+    // Set custom error handler.
     REDIS_CLIENT_DECL void installErrorHandler(
-        const boost::function<void(const std::string &)> &handler);
-
-    // Execute command on Redis server.
-    REDIS_CLIENT_DECL void command(
-            const std::string &cmd,
-            const boost::function<void(const RedisValue &)> &handler = &dummyHandler);
-
-    // Execute command on Redis server with one argument.
-    REDIS_CLIENT_DECL void command(
-            const std::string &cmd, const RedisBuffer &arg1,
-            const boost::function<void(const RedisValue &)> &handler = &dummyHandler);
-
-    // Execute command on Redis server with two arguments.
-    REDIS_CLIENT_DECL void command(
-            const std::string &cmd, const RedisBuffer &arg1, const RedisBuffer &arg2,
-            const boost::function<void(const RedisValue &)> &handler = &dummyHandler);
-
-    // Execute command on Redis server with three arguments.
-    REDIS_CLIENT_DECL void command(
-            const std::string &cmd, const RedisBuffer &arg1,
-            const RedisBuffer &arg2, const RedisBuffer &arg3,
-            const boost::function<void(const RedisValue &)> &handler = &dummyHandler);
-
-    // Execute command on Redis server with four arguments.
-    REDIS_CLIENT_DECL void command(
-            const std::string &cmd, const RedisBuffer &arg1, const RedisBuffer &arg2,
-            const RedisBuffer &arg3, const RedisBuffer &arg4,
-            const boost::function<void(const RedisValue &)> &handler = &dummyHandler);
-
-    // Execute command on Redis server with five arguments.
-    REDIS_CLIENT_DECL void command(
-            const std::string &cmd, const RedisBuffer &arg1,
-            const RedisBuffer &arg2, const RedisBuffer &arg3,
-            const RedisBuffer &arg4, const RedisBuffer &arg5,
-            const boost::function<void(const RedisValue &)> &handler = &dummyHandler);
-
-    // Execute command on Redis server with six arguments.
-    REDIS_CLIENT_DECL void command(
-            const std::string &cmd, const RedisBuffer &arg1,
-            const RedisBuffer &arg2, const RedisBuffer &arg3,
-            const RedisBuffer &arg4, const RedisBuffer &arg5,
-            const RedisBuffer &arg6,
-            const boost::function<void(const RedisValue &)> &handler = &dummyHandler);
-
-
-    // Execute command on Redis server with seven arguments.
-    REDIS_CLIENT_DECL void command(
-            const std::string &cmd, const RedisBuffer &arg1,
-            const RedisBuffer &arg2, const RedisBuffer &arg3,
-            const RedisBuffer &arg4, const RedisBuffer &arg5,
-            const RedisBuffer &arg6, const RedisBuffer &arg7,
-            const boost::function<void(const RedisValue &)> &handler = &dummyHandler);
+            boost::function<void(const std::string &)> handler);
 
     // Execute command on Redis server with the list of arguments.
     REDIS_CLIENT_DECL void command(
-            const std::string &cmd, const std::list<RedisBuffer> &args,
-            const boost::function<void(const RedisValue &)> &handler = &dummyHandler);
+            const std::string &cmd, std::deque<RedisBuffer> args,
+            boost::function<void(const RedisValue &)> handler = dummyHandler);
 
     // Subscribe to channel. Handler msgHandler will be called
     // when someone publish message on channel. Call unsubscribe 
@@ -157,6 +109,8 @@ protected:
 private:
     boost::shared_ptr<RedisClientImpl> pimpl;
 };
+
+}
 
 #ifdef REDIS_CLIENT_HEADER_ONLY
 #include "impl/redisasyncclient.cpp"

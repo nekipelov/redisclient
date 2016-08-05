@@ -22,6 +22,8 @@
 #include "../redisbuffer.h"
 #include "../config.h"
 
+namespace redisclient {
+
 class RedisClientImpl : public boost::enable_shared_from_this<RedisClientImpl> {
 public:
     enum State {
@@ -42,13 +44,13 @@ public:
 
     REDIS_CLIENT_DECL State getState() const;
 
-    REDIS_CLIENT_DECL static std::vector<char> makeCommand(const std::vector<RedisBuffer> &items);
+    REDIS_CLIENT_DECL static std::vector<char> makeCommand(const std::deque<RedisBuffer> &items);
 
-    REDIS_CLIENT_DECL RedisValue doSyncCommand(const std::vector<RedisBuffer> &buff);
+    REDIS_CLIENT_DECL RedisValue doSyncCommand(const std::deque<RedisBuffer> &buff);
 
     REDIS_CLIENT_DECL void doAsyncCommand(
-            const std::vector<char> &buff,
-            const boost::function<void(const RedisValue &)> &handler);
+            std::vector<char> buff,
+            boost::function<void(const RedisValue &)> handler);
 
     REDIS_CLIENT_DECL void sendNextCommand();
     REDIS_CLIENT_DECL void processMessage();
@@ -106,6 +108,8 @@ template<typename Handler>
 inline void RedisClientImpl::post(const Handler &handler)
 {
     strand.post(handler);
+}
+
 }
 
 

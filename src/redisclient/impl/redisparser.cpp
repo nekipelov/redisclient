@@ -11,6 +11,8 @@
 
 #include "../redisparser.h"
 
+namespace redisclient {
+
 RedisParser::RedisParser()
     : state(Start), bulkSize(0)
 {
@@ -43,14 +45,14 @@ std::pair<size_t, RedisParser::ParseResult> RedisParser::parseArray(const char *
 
         if( pair.second != Completed )
         {
-            valueStack.push(arrayValue);
+            valueStack.push(std::move(arrayValue));
             arrayStack.push(arraySize);
 
             return pair;
         }
         else
         {
-            arrayValue.push_back( valueStack.top() );
+            arrayValue.push_back( std::move(valueStack.top()) );
             valueStack.pop();
             --arraySize;
         }
@@ -60,7 +62,7 @@ std::pair<size_t, RedisParser::ParseResult> RedisParser::parseArray(const char *
 
     if( i == size )
     {
-        valueStack.push(arrayValue);
+        valueStack.push(std::move(arrayValue));
 
         if( arraySize == 0 )
         {
@@ -88,7 +90,7 @@ std::pair<size_t, RedisParser::ParseResult> RedisParser::parseArray(const char *
         else if( pair.second == Incompleted )
         {
             arraySize -= x;
-            valueStack.push(arrayValue);
+            valueStack.push(std::move(arrayValue));
             arrayStack.push(arraySize);
 
             return std::make_pair(i, Incompleted);
@@ -96,14 +98,14 @@ std::pair<size_t, RedisParser::ParseResult> RedisParser::parseArray(const char *
         else
         {
             assert( valueStack.empty() == false );
-            arrayValue.push_back( valueStack.top() );
+            arrayValue.push_back( std::move(valueStack.top()) );
             valueStack.pop();
         }
     }
 
     assert( x == arraySize );
 
-    valueStack.push(arrayValue);
+    valueStack.push(std::move(arrayValue));
     return std::make_pair(i, Completed);
 }
 
@@ -225,9 +227,7 @@ std::pair<size_t, RedisParser::ParseResult> RedisParser::parseChunk(const char *
             case BulkSizeLF:
                 if( c == '\n' )
                 {
-                    // TODO optimize me
-                    std::string tmp(buf.begin(), buf.end());
-                    bulkSize = strtol(tmp.c_str(), 0, 10);
+                    bulkSize = bufToLong(buf.data(), buf.size());
                     buf.clear();
 
                     if( bulkSize == -1 )
@@ -352,16 +352,15 @@ std::pair<size_t, RedisParser::ParseResult> RedisParser::parseChunk(const char *
             case ArraySizeLF:
                 if( c == '\n' )
                 {
-                    // TODO optimize me
-                    std::string tmp(buf.begin(), buf.end());
-                    long int arraySize = strtol(tmp.c_str(), 0, 10);
+                    int64_t arraySize = bufToLong(buf.data(), buf.size());
+
                     buf.clear();
                     std::vector<RedisValue> array;
 
                     if( arraySize == -1 || arraySize == 0)
                     {
                         state = Start;
-                        valueStack.push(array);  // Empty array
+                        valueStack.push(std::move(array));  // Empty array
                         return std::make_pair(i + 1, Completed);
                     }
                     else if( arraySize < 0 )
@@ -373,7 +372,7 @@ std::pair<size_t, RedisParser::ParseResult> RedisParser::parseChunk(const char *
                     {
                         array.reserve(arraySize);
                         arrayStack.push(arraySize);
-                        valueStack.push(array);
+                        valueStack.push(std::move(array));
 
                         state = Start;
 
@@ -421,9 +420,7 @@ std::pair<size_t, RedisParser::ParseResult> RedisParser::parseChunk(const char *
             case IntegerLF:
                 if( c == '\n' )
                 {
-                    // TODO optimize me
-                    std::string tmp(buf.begin(), buf.end());
-                    int64_t value = strtoll(tmp.c_str(), 0, 10);
+                    int64_t value = bufToLong(buf.data(), buf.size());
 
                     buf.clear();
 
@@ -453,7 +450,7 @@ RedisValue RedisParser::result()
 
     if( valueStack.empty() == false )
     {
-        RedisValue value = valueStack.top();
+        RedisValue value = std::move(valueStack.top());
         valueStack.pop();
 
         return value;
@@ -462,6 +459,48 @@ RedisValue RedisParser::result()
     {
         return RedisValue();
     }
+}
+
+/*
+ * Convert string to long. I can't use atol/strtol because it
+ * work only with null terminated string. I can use temporary
+ * std::string object but that is slower then bufToLong.
+ */
+long int RedisParser::bufToLong(const char *str, size_t size)
+{
+    long int value = 0;
+    bool sign = false;
+
+    if( str == nullptr || size == 0 )
+    {
+        return 0;
+    }
+
+    if( *str == '-' )
+    {
+        sign = true;
+        ++str;
+        --size;
+
+        if( size == 0 ) {
+            return 0;
+        }
+    }
+
+    for(const char *end = str + size; str != end; ++str)
+    {
+        char c = *str;
+
+        // char must be valid, already checked in the parser
+        assert(c >= '0' && c <= '9');
+
+        value = value * 10;
+        value += c - '0';
+    }
+
+    return sign ? -value : value;
+}
+
 }
 
 #endif // REDISCLIENT_REDISPARSER_CPP

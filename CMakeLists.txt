@@ -10,7 +10,7 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Release")
 endif()
 
-SET(CMAKE_CXX_FLAGS "-W -Wall -Wextra -Wshadow -fPIC -pthread")
+SET(CMAKE_CXX_FLAGS "-W -Wall -Wextra -Wshadow -fPIC -pthread -std=c++11")
 SET(CMAKE_CXX_FLAGS_DEBUG "-O0 -g3 -DDEBUG ")
 SET(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 
@@ -28,7 +28,6 @@ SET(HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/src/redisclient/redisvalue.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/redisclient/redissyncclient.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/redisclient/redisparser.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/redisclient/redisclient.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/redisclient/redisbuffer.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/redisclient/redisasyncclient.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/redisclient/impl/redisclientimpl.h
@@ -62,3 +61,4 @@ ADD_CUSTOM_COMMAND(TARGET test
 )
 
 ADD_SUBDIRECTORY(examples)
+

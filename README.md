@@ -7,9 +7,11 @@ Build master status: [![Build travis status](https://travis-ci.org/nekipelov/red
 Build develop status: [![Build travis status](https://travis-ci.org/nekipelov/redisclient.svg?branch=develop)](https://travis-ci.org/nekipelov/redisclient)
 [![Build appveyor status](https://ci.appveyor.com/api/projects/status/github/nekipelov/redisclient?branch=develop)](https://ci.appveyor.com/project/nekipelov/redisclient/branch/develop)
 
-Current version: 0.4.4
+Current version: 0.5.0.
 
 Boost.asio based Redis-client header-only library. Simple but powerfull.
+
+This version requires С++11 compiler. If you want to use this library with old compiler, use version 0.4: https://github.com/nekipelov/redisclient/tree/v0.4.
 
 Get/set example:
 
@@ -32,7 +34,7 @@ Get/set example:
     
         RedisValue result;
     
-        result = redis.command("SET", "key", "value");
+        result = redis.command("SET", {"key", "value"});
     
         if( result.isError() )
         {
@@ -40,7 +42,7 @@ Get/set example:
             return EXIT_FAILURE;
         }
     
-        result = redis.command("GET", "key");
+        result = redis.command("GET", {"key"});
     
         if( result.isOk() )
         {
@@ -66,13 +68,13 @@ Async get/set example:
     {
         if( ok )
         {
-            redis.command("SET", redisKey, redisValue, [&](const RedisValue &v) {
+            redis.command("SET", {redisKey, redisValue}, [&](const RedisValue &v) {
                 std::cerr << "SET: " << v.toString() << std::endl;
 
-                redis.command("GET", redisKey, [&](const RedisValue &v) {
+                redis.command("GET", {redisKey}, [&](const RedisValue &v) {
                     std::cerr << "GET: " << v.toString() << std::endl;
     
-                    redis.command("DEL", redisKey, [&](const RedisValue &) {
+                    redis.command("DEL", {redisKey}, [&](const RedisValue &) {
                         ioService.stop();
                     });
                 });

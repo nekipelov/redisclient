@@ -18,6 +18,8 @@
 #include "redisvalue.h"
 #include "config.h"
 
+namespace redisclient {
+
 class RedisClientImpl;
 
 class RedisSyncClient : boost::noncopyable {
@@ -38,51 +40,11 @@ public:
 
     // Set custom error handler. 
     REDIS_CLIENT_DECL void installErrorHandler(
-        const boost::function<void(const std::string &)> &handler);
-
-    // Execute command on Redis server.
-    REDIS_CLIENT_DECL RedisValue command(const std::string &cmd);
-
-    // Execute command on Redis server with one argument.
-    REDIS_CLIENT_DECL RedisValue command(const std::string &cmd, const RedisBuffer &arg1);
-
-    // Execute command on Redis server with two arguments.
-    REDIS_CLIENT_DECL RedisValue command(
-            const std::string &cmd, const RedisBuffer &arg1, const RedisBuffer &arg2);
-
-    // Execute command on Redis server with three arguments.
-    REDIS_CLIENT_DECL RedisValue command(
-            const std::string &cmd, const RedisBuffer &arg1,
-            const RedisBuffer &arg2, const RedisBuffer &arg3);
-
-    // Execute command on Redis server with four arguments.
-    REDIS_CLIENT_DECL RedisValue command(
-            const std::string &cmd, const RedisBuffer &arg1, const RedisBuffer &arg2,
-            const RedisBuffer &arg3, const RedisBuffer &arg4);
-
-    // Execute command on Redis server with five arguments.
-    REDIS_CLIENT_DECL RedisValue command(
-            const std::string &cmd, const RedisBuffer &arg1,
-            const RedisBuffer &arg2, const RedisBuffer &arg3,
-            const RedisBuffer &arg4, const RedisBuffer &arg5);
-
-    // Execute command on Redis server with six arguments.
-    REDIS_CLIENT_DECL RedisValue command(
-            const std::string &cmd, const RedisBuffer &arg1,
-            const RedisBuffer &arg2, const RedisBuffer &arg3,
-            const RedisBuffer &arg4, const RedisBuffer &arg5,
-            const RedisBuffer &arg6);
-
-    // Execute command on Redis server with seven arguments.
-    REDIS_CLIENT_DECL RedisValue command(
-            const std::string &cmd, const RedisBuffer &arg1,
-            const RedisBuffer &arg2, const RedisBuffer &arg3,
-            const RedisBuffer &arg4, const RedisBuffer &arg5,
-            const RedisBuffer &arg6, const RedisBuffer &arg7);
+        boost::function<void(const std::string &)> handler);
 
     // Execute command on Redis server with the list of arguments.
     REDIS_CLIENT_DECL RedisValue command(
-            const std::string &cmd, const std::list<std::string> &args);
+            const std::string &cmd, std::deque<RedisBuffer> args);
 
 protected:
     REDIS_CLIENT_DECL bool stateValid() const;
@@ -90,6 +52,8 @@ protected:
 private:
     boost::shared_ptr<RedisClientImpl> pimpl;
 };
+
+}
 
 #ifdef REDIS_CLIENT_HEADER_ONLY
 #include "impl/redissyncclient.cpp"
