@@ -6,18 +6,18 @@
 #ifndef REDISCLIENT_REDISSYNCCLIENT_CPP
 #define REDISCLIENT_REDISSYNCCLIENT_CPP
 
-#include <boost/make_shared.hpp>
-#include <boost/bind.hpp>
+#include <memory>
+#include <functional>
 
 #include "../redissyncclient.h"
 
 namespace redisclient {
 
 RedisSyncClient::RedisSyncClient(boost::asio::io_service &ioService)
-    : pimpl(boost::make_shared<RedisClientImpl>(boost::ref(ioService)))
+    : pimpl(std::make_shared<RedisClientImpl>(ioService))
 {
-    pimpl->errorHandler = boost::bind(&RedisClientImpl::defaulErrorHandler,
-                                      pimpl, _1);
+    pimpl->errorHandler = std::bind(&RedisClientImpl::defaulErrorHandler,
+                                      pimpl, std::placeholders::_1);
 }
 
 RedisSyncClient::~RedisSyncClient()
@@ -64,7 +64,7 @@ bool RedisSyncClient::connect(const boost::asio::ip::address &address,
 }
 
 void RedisSyncClient::installErrorHandler(
-        boost::function<void(const std::string &)> handler)
+        std::function<void(const std::string &)> handler)
 {
     pimpl->errorHandler = std::move(handler);
 }

@@ -7,11 +7,11 @@
 #define REDISSYNCCLIENT_REDISCLIENT_H
 
 #include <boost/asio/io_service.hpp>
-#include <boost/function.hpp>
 #include <boost/noncopyable.hpp>
 
 #include <string>
 #include <list>
+#include <functional>
 
 #include "impl/redisclientimpl.h"
 #include "redisbuffer.h"
@@ -40,7 +40,7 @@ public:
 
     // Set custom error handler. 
     REDIS_CLIENT_DECL void installErrorHandler(
-        boost::function<void(const std::string &)> handler);
+        std::function<void(const std::string &)> handler);
 
     // Execute command on Redis server with the list of arguments.
     REDIS_CLIENT_DECL RedisValue command(
@@ -50,7 +50,7 @@ protected:
     REDIS_CLIENT_DECL bool stateValid() const;
 
 private:
-    boost::shared_ptr<RedisClientImpl> pimpl;
+    std::shared_ptr<RedisClientImpl> pimpl;
 };
 
 }

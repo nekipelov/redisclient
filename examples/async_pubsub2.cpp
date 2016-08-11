@@ -1,6 +1,6 @@
 #include <string>
 #include <iostream>
-#include <boost/bind.hpp>
+#include <functional>
 #include <boost/asio/ip/address.hpp>
 
 #include <redisclient/redisasyncclient.h>
@@ -65,8 +65,8 @@ int main(int, char **)
                 else
                 {
                     subscriber.subscribe(channelName,
-                            boost::bind(&Client::onMessage, &client, _1),
-                            boost::bind(&publishHandler, boost::ref(publisher), _1));
+                            std::bind(&Client::onMessage, &client, std::placeholders::_1),
+                            std::bind(&publishHandler, std::ref(publisher), std::placeholders::_1));
                 }
             });
         }

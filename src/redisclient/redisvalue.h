@@ -23,8 +23,8 @@ public:
     REDIS_CLIENT_DECL RedisValue(int64_t i);
     REDIS_CLIENT_DECL RedisValue(const char *s);
     REDIS_CLIENT_DECL RedisValue(const std::string &s);
-    REDIS_CLIENT_DECL RedisValue(const std::vector<char> &buf);
-    REDIS_CLIENT_DECL RedisValue(const std::vector<char> &buf, struct ErrorTag &);
+    REDIS_CLIENT_DECL RedisValue(std::vector<char> buf);
+    REDIS_CLIENT_DECL RedisValue(std::vector<char> buf, struct ErrorTag);
     REDIS_CLIENT_DECL RedisValue(std::vector<RedisValue> array);
 
 

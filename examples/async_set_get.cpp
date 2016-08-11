@@ -1,7 +1,7 @@
 #include <string>
 #include <iostream>
+#include <functional>
 #include <boost/asio/ip/address.hpp>
-#include <boost/bind.hpp>
 
 #include <redisclient/redisasyncclient.h>
 
@@ -34,7 +34,7 @@ void Worker::onConnect(bool connected, const std::string &errorMessage)
     else
     {
         redisClient.command("SET",  {redisKey, redisValue},
-                            boost::bind(&Worker::onSet, this, _1));
+                            std::bind(&Worker::onSet, this, std::placeholders::_1));
     }
 }
 
@@ -44,7 +44,7 @@ void Worker::onSet(const redisclient::RedisValue &value)
     if( value.toString() == "OK" )
     {
         redisClient.command("GET",  {redisKey},
-                            boost::bind(&Worker::onGet, this, _1));
+                            std::bind(&Worker::onGet, this, std::placeholders::_1));
     }
     else
     {
@@ -61,7 +61,7 @@ void Worker::onGet(const redisclient::RedisValue &value)
     }
 
     redisClient.command("DEL", {redisKey},
-                        boost::bind(&boost::asio::io_service::stop, boost::ref(ioService)));
+                        std::bind(&boost::asio::io_service::stop, std::ref(ioService)));
 }
 
 
@@ -75,7 +75,8 @@ int main(int, char **)
     Worker worker(ioService, client);
     boost::asio::ip::tcp::endpoint endpoint(boost::asio::ip::address::from_string(address), port);
 
-    client.asyncConnect(endpoint, boost::bind(&Worker::onConnect, &worker, _1, _2));
+    client.asyncConnect(endpoint, std::bind(&Worker::onConnect, &worker,
+                std::placeholders::_1, std::placeholders::_2));
 
     ioService.run();
 

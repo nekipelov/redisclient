@@ -33,6 +33,7 @@ SET(EXAMPLES
     async_set_get2.cpp
     async_set_get.cpp
     sync_set_get.cpp
+    benchmark.cpp
 )
 
 FOREACH(FILE ${REDISCLIENT_SOURCES})

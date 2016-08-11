@@ -1,6 +1,5 @@
 #include <string>
 #include <iostream>
-#include <boost/bind.hpp>
 #include <boost/asio/ip/address.hpp>
 #include <boost/format.hpp>
 #include <boost/asio/deadline_timer.hpp>
@@ -21,8 +20,8 @@ public:
           address(address), port(port),
           publisher(ioService), subscriber(ioService)
     {
-        publisher.installErrorHandler(boost::bind(&Client::connectPublisher, this));
-        subscriber.installErrorHandler(boost::bind(&Client::connectSubscriber, this));
+        publisher.installErrorHandler(std::bind(&Client::connectPublisher, this));
+        subscriber.installErrorHandler(std::bind(&Client::connectSubscriber, this));
     }
 
     void publish(const std::string &str)
@@ -61,7 +60,7 @@ protected:
         }
 
         publisher.connect(address, port,
-                          boost::bind(&Client::onPublisherConnected, this, _1, _2));
+                          std::bind(&Client::onPublisherConnected, this, std::placeholders::_1, std::placeholders::_2));
     }
 
     void connectSubscriber()
@@ -75,7 +74,7 @@ protected:
         }
 
         subscriber.connect(address, port,
-                           boost::bind(&Client::onSubscriberConnected, this, _1, _2));
+                           std::bind(&Client::onSubscriberConnected, this, std::placeholders::_1, std::placeholders::_2));
     }
 
     void callLater(boost::asio::deadline_timer &timer,
@@ -131,7 +130,7 @@ protected:
         {
             std::cerr << "onSubscriberConnected ok\n";
             subscriber.subscribe(channelName,
-                                 boost::bind(&Client::onMessage, this, _1));
+                                 std::bind(&Client::onMessage, this, std::placeholders::_1));
         }
     }
 

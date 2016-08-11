@@ -6,18 +6,18 @@
 #ifndef REDISASYNCCLIENT_REDISASYNCCLIENT_CPP
 #define REDISASYNCCLIENT_REDISASYNCCLIENT_CPP
 
-#include <boost/make_shared.hpp>
-#include <boost/bind.hpp>
+#include <memory>
+#include <functional>
 
 #include "../redisasyncclient.h"
 
 namespace redisclient {
 
 RedisAsyncClient::RedisAsyncClient(boost::asio::io_service &ioService)
-    : pimpl(boost::make_shared<RedisClientImpl>(boost::ref(ioService)))
+    : pimpl(std::make_shared<RedisClientImpl>(ioService))
 {
-    pimpl->errorHandler = boost::bind(&RedisClientImpl::defaulErrorHandler,
-                                      pimpl, _1);
+    pimpl->errorHandler = std::bind(&RedisClientImpl::defaulErrorHandler,
+                                      pimpl, std::placeholders::_1);
 }
 
 RedisAsyncClient::~RedisAsyncClient()
@@ -27,17 +27,17 @@ RedisAsyncClient::~RedisAsyncClient()
 
 void RedisAsyncClient::connect(const boost::asio::ip::address &address,
                                unsigned short port,
-                               const boost::function<void(bool, const std::string &)> &handler)
+                               std::function<void(bool, const std::string &)> handler)
 {
     boost::asio::ip::tcp::endpoint endpoint(address, port);
-    connect(endpoint, handler);
+    connect(endpoint, std::move(handler));
 }
 
 void RedisAsyncClient::connect(const boost::asio::ip::tcp::endpoint &endpoint,
-                               const boost::function<void(bool, const std::string &)> &handler)
+                               std::function<void(bool, const std::string &)> handler)
 {
-    pimpl->socket.async_connect(endpoint, boost::bind(&RedisClientImpl::handleAsyncConnect,
-                                                      pimpl, _1, handler));
+    pimpl->socket.async_connect(endpoint, std::bind(&RedisClientImpl::handleAsyncConnect,
+                                                      pimpl, std::placeholders::_1, std::move(handler)));
 }
 
 bool RedisAsyncClient::isConnected() const
@@ -52,27 +52,27 @@ void RedisAsyncClient::disconnect()
     pimpl->close();
 }
 
-void RedisAsyncClient::installErrorHandler(boost::function<void(const std::string &)> handler)
+void RedisAsyncClient::installErrorHandler(std::function<void(const std::string &)> handler)
 {
     pimpl->errorHandler = std::move(handler);
 }
 
 void RedisAsyncClient::command(const std::string &cmd, std::deque<RedisBuffer> args,
-                          boost::function<void(const RedisValue &)> handler)
+                          std::function<void(RedisValue)> handler)
 {
     if(stateValid())
     {
         args.emplace_front(cmd);
 
-        pimpl->post(boost::bind(&RedisClientImpl::doAsyncCommand, pimpl,
+        pimpl->post(std::bind(&RedisClientImpl::doAsyncCommand, pimpl,
                     std::move(pimpl->makeCommand(args)), std::move(handler)));
     }
 }
 
 RedisAsyncClient::Handle RedisAsyncClient::subscribe(
         const std::string &channel,
-        const boost::function<void(const std::vector<char> &msg)> &msgHandler,
-        const boost::function<void(const RedisValue &)> &handler)
+        std::function<void(std::vector<char> msg)> msgHandler,
+        std::function<void(RedisValue)> handler)
 {
     assert( pimpl->state == RedisClientImpl::Connected ||
             pimpl->state == RedisClientImpl::Subscribed);
@@ -85,9 +85,10 @@ RedisAsyncClient::Handle RedisAsyncClient::subscribe(
 
         std::deque<RedisBuffer> items {subscribeStr, channel};
 
-        pimpl->post(boost::bind(&RedisClientImpl::doAsyncCommand, pimpl,
-                    pimpl->makeCommand(items), handler));
-        pimpl->msgHandlers.insert(std::make_pair(channel, std::make_pair(handle.id, msgHandler)));
+        pimpl->post(std::bind(&RedisClientImpl::doAsyncCommand, pimpl,
+                    pimpl->makeCommand(items),  std::move(handler)));
+        pimpl->msgHandlers.insert(std::make_pair(channel, std::make_pair(handle.id,
+                        std::move(msgHandler))));
         pimpl->state = RedisClientImpl::Subscribed;
 
         return handle;
@@ -138,7 +139,7 @@ void RedisAsyncClient::unsubscribe(const Handle &handle)
         std::deque<RedisBuffer> items {unsubscribeStr, handle.channel};
 
         // Unsubscribe command for Redis
-        pimpl->post(boost::bind(&RedisClientImpl::doAsyncCommand, pimpl,
+        pimpl->post(std::bind(&RedisClientImpl::doAsyncCommand, pimpl,
                     pimpl->makeCommand(items), dummyHandler));
     }
     else
@@ -161,8 +162,8 @@ void RedisAsyncClient::unsubscribe(const Handle &handle)
 }
 
 void RedisAsyncClient::singleShotSubscribe(const std::string &channel,
-                                      const boost::function<void(const std::vector<char> &msg)> &msgHandler,
-                                      const boost::function<void(const RedisValue &)> &handler)
+                                      std::function<void(std::vector<char> msg)> msgHandler,
+                                      std::function<void(RedisValue)> handler)
 {
     assert( pimpl->state == RedisClientImpl::Connected ||
             pimpl->state == RedisClientImpl::Subscribed);
@@ -174,9 +175,9 @@ void RedisAsyncClient::singleShotSubscribe(const std::string &channel,
     {
         std::deque<RedisBuffer> items {subscribeStr, channel};
 
-        pimpl->post(boost::bind(&RedisClientImpl::doAsyncCommand, pimpl,
-                    pimpl->makeCommand(items), handler));
-        pimpl->singleShotMsgHandlers.insert(std::make_pair(channel, msgHandler));
+        pimpl->post(std::bind(&RedisClientImpl::doAsyncCommand, pimpl,
+                    pimpl->makeCommand(items), std::move(handler)));
+        pimpl->singleShotMsgHandlers.insert(std::make_pair(channel, std::move(msgHandler)));
         pimpl->state = RedisClientImpl::Subscribed;
     }
     else
@@ -192,7 +193,7 @@ void RedisAsyncClient::singleShotSubscribe(const std::string &channel,
 
 
 void RedisAsyncClient::publish(const std::string &channel, const RedisBuffer &msg,
-                          const boost::function<void(const RedisValue &)> &handler)
+                          std::function<void(RedisValue)> handler)
 {
     assert( pimpl->state == RedisClientImpl::Connected );
 
@@ -206,8 +207,8 @@ void RedisAsyncClient::publish(const std::string &channel, const RedisBuffer &ms
         items[1] = channel;
         items[2] = msg;
 
-        pimpl->post(boost::bind(&RedisClientImpl::doAsyncCommand, pimpl,
-                    pimpl->makeCommand(items), handler));
+        pimpl->post(std::bind(&RedisClientImpl::doAsyncCommand, pimpl,
+                    pimpl->makeCommand(items), std::move(handler)));
     }
     else
     {

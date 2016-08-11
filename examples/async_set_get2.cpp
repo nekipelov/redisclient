@@ -1,5 +1,6 @@
 #include <string>
 #include <iostream>
+#include <functional>
 #include <boost/asio/io_service.hpp>
 #include <boost/asio/ip/address.hpp>
 
@@ -40,7 +41,8 @@ int main(int, char **)
     redisclient::RedisAsyncClient redis(ioService);
 
     redis.asyncConnect(address, port,
-            boost::bind(&handleConnected, boost::ref(ioService), boost::ref(redis), _1, _2));
+            std::bind(&handleConnected, std::ref(ioService), std::ref(redis),
+                std::placeholders::_1, std::placeholders::_2));
 
     ioService.run();
 

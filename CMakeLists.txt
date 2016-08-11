@@ -2,17 +2,24 @@ cmake_minimum_required(VERSION 2.6)
 
 PROJECT(RedisClient)
 
-FIND_PACKAGE(Boost COMPONENTS unit_test_framework system REQUIRED)
-
+OPTION(ADDRESS_SANITIZER "Enable address sanitizer" OFF) 
 
 if(NOT CMAKE_BUILD_TYPE)
     message(STATUS "No build type selected, default to Release")
     set(CMAKE_BUILD_TYPE "Release")
 endif()
 
-SET(CMAKE_CXX_FLAGS "-W -Wall -Wextra -Wshadow -fPIC -pthread -std=c++11")
-SET(CMAKE_CXX_FLAGS_DEBUG "-O0 -g3 -DDEBUG ")
-SET(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
+if( ADDRESS_SANITIZER )
+    message(STATUS "Build with address-sanitizer")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
+    set(CMAKE_LD_FLAGS "-fsanitize=address")
+endif()
+
+FIND_PACKAGE(Boost COMPONENTS unit_test_framework system REQUIRED)
+
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W -Wall -Wextra -Wshadow -fPIC -pthread -std=c++11")
+SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -g3 -DDEBUG ")
+SET(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -DNDEBUG")
 
 SET(SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/redisclient/impl/redisvalue.cpp
@@ -40,9 +47,14 @@ INCLUDE_DIRECTORIES(
 )
 
 ADD_EXECUTABLE(parsertest tests/parsertest.cpp ${SOURCES} ${HEADERS})
+ADD_EXECUTABLE(redisvaluetest tests/redisvaluetest.cpp ${SOURCES} ${HEADERS})
 ADD_LIBRARY(redisclient STATIC ${HEADERS} ${SOURCES})
 
 TARGET_LINK_LIBRARIES(parsertest
+    ${Boost_LIBRARIES}
+)
+
+TARGET_LINK_LIBRARIES(redisvaluetest
     ${Boost_LIBRARIES}
 )
 
@@ -52,13 +64,9 @@ TARGET_LINK_LIBRARIES(redisclient
 
 INSTALL(DIRECTORY ${CMAKE_SOURCE_DIR}/src DESTINATION include)
 
-ADD_CUSTOM_TARGET(test)
-ADD_CUSTOM_COMMAND(TARGET test
-    POST_BUILD
-    COMMAND ./parsertest
-    COMMENT "Run tests"
-    VERBATIM
-)
-
 ADD_SUBDIRECTORY(examples)
+
+INCLUDE(CTest)
+ADD_TEST(ParserTest parsertest)
+ADD_TEST(RedisValueTest redisvaluetest)
 

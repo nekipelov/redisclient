@@ -7,16 +7,16 @@
 #define REDISCLIENT_REDISCLIENTIMPL_H
 
 #include <boost/array.hpp>
-#include <boost/function.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/strand.hpp>
-#include <boost/enable_shared_from_this.hpp>
 
 #include <string>
 #include <vector>
 #include <queue>
 #include <map>
+#include <functional>
+#include <memory>
 
 #include "../redisparser.h"
 #include "../redisbuffer.h"
@@ -24,7 +24,7 @@
 
 namespace redisclient {
 
-class RedisClientImpl : public boost::enable_shared_from_this<RedisClientImpl> {
+class RedisClientImpl : public std::enable_shared_from_this<RedisClientImpl> {
 public:
     enum State {
         NotConnected,
@@ -38,7 +38,7 @@ public:
 
     REDIS_CLIENT_DECL void handleAsyncConnect(
             const boost::system::error_code &ec,
-            const boost::function<void(bool, const std::string &)> &handler);
+            const std::function<void(bool, const std::string &)> &handler);
 
     REDIS_CLIENT_DECL void close();
 
@@ -50,11 +50,11 @@ public:
 
     REDIS_CLIENT_DECL void doAsyncCommand(
             std::vector<char> buff,
-            boost::function<void(const RedisValue &)> handler);
+            std::function<void(RedisValue)> handler);
 
     REDIS_CLIENT_DECL void sendNextCommand();
     REDIS_CLIENT_DECL void processMessage();
-    REDIS_CLIENT_DECL void doProcessMessage(const RedisValue &v);
+    REDIS_CLIENT_DECL void doProcessMessage(RedisValue v);
     REDIS_CLIENT_DECL void asyncWrite(const boost::system::error_code &ec, const size_t);
     REDIS_CLIENT_DECL void asyncRead(const boost::system::error_code &ec, const size_t);
 
@@ -77,24 +77,24 @@ public:
     boost::array<char, 4096> buf;
     size_t subscribeSeq;
 
-    typedef std::pair<size_t, boost::function<void(const std::vector<char> &buf)> > MsgHandlerType;
-    typedef boost::function<void(const std::vector<char> &buf)> SingleShotHandlerType;
+    typedef std::pair<size_t, std::function<void(const std::vector<char> &buf)> > MsgHandlerType;
+    typedef std::function<void(const std::vector<char> &buf)> SingleShotHandlerType;
 
     typedef std::multimap<std::string, MsgHandlerType> MsgHandlersMap;
     typedef std::multimap<std::string, SingleShotHandlerType> SingleShotHandlersMap;
 
-    std::queue<boost::function<void(const RedisValue &v)> > handlers;
+    std::queue<std::function<void(RedisValue)> > handlers;
     MsgHandlersMap msgHandlers;
     SingleShotHandlersMap singleShotMsgHandlers;
 
     struct QueueItem {
-        boost::function<void(const RedisValue &)> handler;
-        boost::shared_ptr<std::vector<char> > buff;
+        std::function<void(RedisValue)> handler;
+        std::shared_ptr<std::vector<char> > buff;
     };
 
     std::queue<QueueItem> queue;
 
-    boost::function<void(const std::string &)> errorHandler;
+    std::function<void(const std::string &)> errorHandler;
     State state;
 };
 

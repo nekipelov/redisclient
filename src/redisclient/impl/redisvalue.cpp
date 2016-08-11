@@ -37,13 +37,13 @@ RedisValue::RedisValue(const std::string &s)
 {
 }
 
-RedisValue::RedisValue(const std::vector<char> &buf)
-    : value(buf), error(false)
+RedisValue::RedisValue(std::vector<char> buf)
+    : value(std::move(buf)), error(false)
 {
 }
 
-RedisValue::RedisValue(const std::vector<char> &buf, struct ErrorTag &)
-    : value(buf), error(true)
+RedisValue::RedisValue(std::vector<char> buf, struct ErrorTag)
+    : value(std::move(buf)), error(true)
 {
 }
 
@@ -171,3 +171,4 @@ bool RedisValue::operator != (const RedisValue &rhs) const
 }
 
 #endif // REDISCLIENT_REDISVALUE_CPP
+

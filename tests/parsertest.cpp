@@ -12,6 +12,23 @@
 
 using namespace redisclient;
 
+class ParserFixture
+{
+public:
+    RedisValue parse(const char *str) {
+        if( parser.parse(str, strlen(str)).second == RedisParser::Completed)
+            return parser.result();
+        else
+            return RedisValue();
+    }
+
+    RedisParser::ParseResult parserResult(const char *str) {
+        return parser.parse(str, strlen(str)).second;
+    }
+
+    RedisParser parser;
+};
+
 void test(RedisParser &parser, const std::string &buf, const RedisValue &expected)
 {
     for(size_t partSize = 1; partSize < buf.size(); ++partSize)
@@ -37,7 +54,7 @@ void test(RedisParser &parser, const std::string &buf, const RedisValue &expecte
 }
 
 
-BOOST_AUTO_TEST_CASE(test_RedisParser)
+BOOST_AUTO_TEST_CASE(test_parser)
 {
     RedisParser parser;
 
@@ -132,11 +149,22 @@ BOOST_AUTO_TEST_CASE(test_RedisParser)
     }
 }
 
-BOOST_AUTO_TEST_CASE(test_RedisParser_invalid_response)
+BOOST_FIXTURE_TEST_CASE(test_invalid_response, ParserFixture)
 {
-    RedisParser parser;
-    std::string str = "*xx\r\n";
+    BOOST_CHECK_EQUAL(parserResult("*xx\r\n"),  RedisParser::Error);
+}
 
-    BOOST_REQUIRE(parser.parse(str.c_str(), str.size()).second == RedisParser::Error);
+BOOST_FIXTURE_TEST_CASE(test_incomplete, ParserFixture)
+{
+    BOOST_CHECK_EQUAL(parserResult("*1\r\n"), RedisParser::Incompleted);
+}
+
+BOOST_FIXTURE_TEST_CASE(test_error, ParserFixture)
+{
+    RedisValue value = parse("-Error message\r\n");
+
+    BOOST_CHECK_EQUAL(value.toString(), "Error message");
+    BOOST_CHECK_EQUAL(value.isError(), true);
+    BOOST_CHECK_EQUAL(value.isOk(), false);
 }
 

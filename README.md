@@ -95,7 +95,7 @@ Async get/set example:
         RedisAsyncClient redis(ioService);
 
         redis.asyncConnect(address, port,
-                boost::bind(&handleConnected, boost::ref(ioService), boost::ref(redis), _1, _2));
+                std::bind(&handleConnected, boost::ref(ioService), boost::ref(redis), std::placeholders::_1, std::placeholders::_2));
     
         ioService.run();
     
@@ -153,8 +153,8 @@ Publish/subscribe example:
                     else
                     {
                         subscriber.subscribe(channelName,
-                                boost::bind(&subscribeHandler, boost::ref(ioService), _1),
-                                boost::bind(&publishHandler, boost::ref(publisher), _1));
+                                std::bind(&subscribeHandler, boost::ref(ioService), std::placeholders::_1),
+                                std::bind(&publishHandler, boost::ref(publisher), std::placeholders::_1));
                     }
                 });
             }
