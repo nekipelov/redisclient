@@ -16,8 +16,7 @@ namespace redisclient {
 RedisAsyncClient::RedisAsyncClient(boost::asio::io_service &ioService)
     : pimpl(std::make_shared<RedisClientImpl>(ioService))
 {
-    pimpl->errorHandler = std::bind(&RedisClientImpl::defaulErrorHandler,
-                                      pimpl, std::placeholders::_1);
+    pimpl->errorHandler = std::bind(&RedisClientImpl::defaulErrorHandler, std::placeholders::_1);
 }
 
 RedisAsyncClient::~RedisAsyncClient()

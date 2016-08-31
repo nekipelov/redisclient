@@ -59,7 +59,7 @@ public:
     REDIS_CLIENT_DECL void asyncRead(const boost::system::error_code &ec, const size_t);
 
     REDIS_CLIENT_DECL void onRedisError(const RedisValue &);
-    REDIS_CLIENT_DECL void defaulErrorHandler(const std::string &s);
+    REDIS_CLIENT_DECL static void defaulErrorHandler(const std::string &s);
 
     REDIS_CLIENT_DECL static void append(std::vector<char> &vec, const RedisBuffer &buf);
     REDIS_CLIENT_DECL static void append(std::vector<char> &vec, const std::string &s);
