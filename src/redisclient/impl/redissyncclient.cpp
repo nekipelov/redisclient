@@ -14,8 +14,7 @@
 RedisSyncClient::RedisSyncClient(boost::asio::io_service &ioService)
     : pimpl(boost::make_shared<RedisClientImpl>(boost::ref(ioService)))
 {
-    pimpl->errorHandler = boost::bind(&RedisClientImpl::defaulErrorHandler,
-                                      pimpl, _1);
+    pimpl->errorHandler = boost::bind(&RedisClientImpl::defaulErrorHandler, _1);
 }
 
 RedisSyncClient::~RedisSyncClient()
