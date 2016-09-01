@@ -40,7 +40,7 @@ void RedisAsyncClient::connect(const boost::asio::ip::tcp::endpoint &endpoint,
                 pimpl, std::placeholders::_1, std::move(handler)));
 }
 
-bool RedisAsyncClient::isConnectedXX() const
+bool RedisAsyncClient::isConnected() const
 {
     return pimpl->getState() == State::Connected ||
             pimpl->getState() == State::Subscribed;
