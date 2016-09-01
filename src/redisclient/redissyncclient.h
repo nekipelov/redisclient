@@ -24,6 +24,8 @@ class RedisClientImpl;
 
 class RedisSyncClient : boost::noncopyable {
 public:
+    typedef RedisClientImpl::State State;
+
     REDIS_CLIENT_DECL RedisSyncClient(boost::asio::io_service &ioService);
     REDIS_CLIENT_DECL ~RedisSyncClient();
 
@@ -38,13 +40,16 @@ public:
             unsigned short port,
             std::string &errmsg);
 
-    // Set custom error handler. 
+    // Set custom error handler.
     REDIS_CLIENT_DECL void installErrorHandler(
         std::function<void(const std::string &)> handler);
 
     // Execute command on Redis server with the list of arguments.
     REDIS_CLIENT_DECL RedisValue command(
             const std::string &cmd, std::deque<RedisBuffer> args);
+
+    // Return connection state. See RedisClientImpl::State.
+    State state() const;
 
 protected:
     REDIS_CLIENT_DECL bool stateValid() const;

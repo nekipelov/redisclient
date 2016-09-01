@@ -35,16 +35,16 @@ void RedisAsyncClient::connect(const boost::asio::ip::address &address,
 void RedisAsyncClient::connect(const boost::asio::ip::tcp::endpoint &endpoint,
                                std::function<void(bool, const std::string &)> handler)
 {
+    pimpl->state = State::Connecting;
     pimpl->socket.async_connect(endpoint, std::bind(&RedisClientImpl::handleAsyncConnect,
-                                                      pimpl, std::placeholders::_1, std::move(handler)));
+                pimpl, std::placeholders::_1, std::move(handler)));
 }
 
-bool RedisAsyncClient::isConnected() const
+bool RedisAsyncClient::isConnectedXX() const
 {
-    return pimpl->getState() == RedisClientImpl::Connected ||
-            pimpl->getState() == RedisClientImpl::Subscribed;
+    return pimpl->getState() == State::Connected ||
+            pimpl->getState() == State::Subscribed;
 }
-
 
 void RedisAsyncClient::disconnect()
 {
@@ -73,12 +73,12 @@ RedisAsyncClient::Handle RedisAsyncClient::subscribe(
         std::function<void(std::vector<char> msg)> msgHandler,
         std::function<void(RedisValue)> handler)
 {
-    assert( pimpl->state == RedisClientImpl::Connected ||
-            pimpl->state == RedisClientImpl::Subscribed);
+    assert( pimpl->state == State::Connected ||
+            pimpl->state == State::Subscribed);
 
     static const std::string subscribeStr = "SUBSCRIBE";
 
-    if( pimpl->state == RedisClientImpl::Connected || pimpl->state == RedisClientImpl::Subscribed )
+    if( pimpl->state == State::Connected || pimpl->state == State::Subscribed )
     {
         Handle handle = {pimpl->subscribeSeq++, channel};
 
@@ -88,7 +88,7 @@ RedisAsyncClient::Handle RedisAsyncClient::subscribe(
                     pimpl->makeCommand(items),  std::move(handler)));
         pimpl->msgHandlers.insert(std::make_pair(channel, std::make_pair(handle.id,
                         std::move(msgHandler))));
-        pimpl->state = RedisClientImpl::Subscribed;
+        pimpl->state = State::Subscribed;
 
         return handle;
     }
@@ -97,7 +97,7 @@ RedisAsyncClient::Handle RedisAsyncClient::subscribe(
         std::stringstream ss;
 
         ss << "RedisAsyncClient::command called with invalid state "
-           << pimpl->state;
+           << to_string(pimpl->state);
 
         pimpl->errorHandler(ss.str());
         return Handle();
@@ -111,13 +111,13 @@ void RedisAsyncClient::unsubscribe(const Handle &handle)
     assert( recursion++ == 0 );
 #endif
 
-    assert( pimpl->state == RedisClientImpl::Connected ||
-            pimpl->state == RedisClientImpl::Subscribed);
+    assert( pimpl->state == State::Connected ||
+            pimpl->state == State::Subscribed);
 
     static const std::string unsubscribeStr = "UNSUBSCRIBE";
 
-    if( pimpl->state == RedisClientImpl::Connected ||
-            pimpl->state == RedisClientImpl::Subscribed )
+    if( pimpl->state == State::Connected ||
+            pimpl->state == State::Subscribed )
     {
         // Remove subscribe-handler
         typedef RedisClientImpl::MsgHandlersMap::iterator iterator;
@@ -146,7 +146,7 @@ void RedisAsyncClient::unsubscribe(const Handle &handle)
         std::stringstream ss;
 
         ss << "RedisAsyncClient::command called with invalid state "
-           << pimpl->state;
+           << to_string(pimpl->state);
 
 #ifdef DEBUG
         --recursion;
@@ -164,27 +164,27 @@ void RedisAsyncClient::singleShotSubscribe(const std::string &channel,
                                       std::function<void(std::vector<char> msg)> msgHandler,
                                       std::function<void(RedisValue)> handler)
 {
-    assert( pimpl->state == RedisClientImpl::Connected ||
-            pimpl->state == RedisClientImpl::Subscribed);
+    assert( pimpl->state == State::Connected ||
+            pimpl->state == State::Subscribed);
 
     static const std::string subscribeStr = "SUBSCRIBE";
 
-    if( pimpl->state == RedisClientImpl::Connected ||
-            pimpl->state == RedisClientImpl::Subscribed )
+    if( pimpl->state == State::Connected ||
+            pimpl->state == State::Subscribed )
     {
         std::deque<RedisBuffer> items {subscribeStr, channel};
 
         pimpl->post(std::bind(&RedisClientImpl::doAsyncCommand, pimpl,
                     pimpl->makeCommand(items), std::move(handler)));
         pimpl->singleShotMsgHandlers.insert(std::make_pair(channel, std::move(msgHandler)));
-        pimpl->state = RedisClientImpl::Subscribed;
+        pimpl->state = State::Subscribed;
     }
     else
     {
         std::stringstream ss;
 
         ss << "RedisAsyncClient::command called with invalid state "
-           << pimpl->state;
+           << to_string(pimpl->state);
 
         pimpl->errorHandler(ss.str());
     }
@@ -194,11 +194,11 @@ void RedisAsyncClient::singleShotSubscribe(const std::string &channel,
 void RedisAsyncClient::publish(const std::string &channel, const RedisBuffer &msg,
                           std::function<void(RedisValue)> handler)
 {
-    assert( pimpl->state == RedisClientImpl::Connected );
+    assert( pimpl->state == State::Connected );
 
     static const std::string publishStr = "PUBLISH";
 
-    if( pimpl->state == RedisClientImpl::Connected )
+    if( pimpl->state == State::Connected )
     {
         std::deque<RedisBuffer> items(3);
 
@@ -214,22 +214,27 @@ void RedisAsyncClient::publish(const std::string &channel, const RedisBuffer &ms
         std::stringstream ss;
 
         ss << "RedisAsyncClient::command called with invalid state "
-           << pimpl->state;
+           << to_string(pimpl->state);
 
         pimpl->errorHandler(ss.str());
     }
 }
 
+RedisAsyncClient::State RedisAsyncClient::state() const
+{
+    return pimpl->getState();
+}
+
 bool RedisAsyncClient::stateValid() const
 {
-    assert( pimpl->state == RedisClientImpl::Connected );
+    assert( pimpl->state == State::Connected );
 
-    if( pimpl->state != RedisClientImpl::Connected )
+    if( pimpl->state != State::Connected )
     {
         std::stringstream ss;
 
         ss << "RedisAsyncClient::command called with invalid state "
-           << pimpl->state;
+           << to_string(pimpl->state);
 
         pimpl->errorHandler(ss.str());
         return false;

@@ -15,7 +15,7 @@
 namespace redisclient {
 
 RedisClientImpl::RedisClientImpl(boost::asio::io_service &ioService)
-    : strand(ioService), socket(ioService), subscribeSeq(0), state(NotConnected)
+    : strand(ioService), socket(ioService), subscribeSeq(0), state(State::Unconnected)
 {
 }
 
@@ -24,9 +24,9 @@ RedisClientImpl::~RedisClientImpl()
     close();
 }
 
-void RedisClientImpl::close()
+void RedisClientImpl::close() noexcept
 {
-    if( state != RedisClientImpl::Closed )
+    if( state != State::Closed )
     {
         boost::system::error_code ignored_ec;
 
@@ -35,7 +35,7 @@ void RedisClientImpl::close()
         socket.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored_ec);
         socket.close(ignored_ec);
 
-        state = RedisClientImpl::Closed;
+        state = State::Closed;
     }
 }
 
@@ -53,7 +53,7 @@ void RedisClientImpl::processMessage()
 
 void RedisClientImpl::doProcessMessage(RedisValue v)
 {
-    if( state == RedisClientImpl::Subscribed )
+    if( state == State::Subscribed )
     {
         std::vector<RedisValue> result = v.toArray();
 
@@ -156,12 +156,13 @@ void RedisClientImpl::handleAsyncConnect(const boost::system::error_code &ec,
     if( !ec )
     {
         socket.set_option(boost::asio::ip::tcp::no_delay(true));
-        state = RedisClientImpl::Connected;
+        state = State::Connected;
         handler(true, std::string());
         processMessage();
     }
     else
     {
+        state = State::Unconnected;
         handler(false, ec.message());
     }
 }

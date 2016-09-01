@@ -43,7 +43,7 @@ bool RedisSyncClient::connect(const boost::asio::ip::tcp::endpoint &endpoint,
 
     if( !ec )
     {
-        pimpl->state = RedisClientImpl::Connected;
+        pimpl->state = State::Connected;
         return true;
     }
     else
@@ -82,16 +82,21 @@ RedisValue RedisSyncClient::command(const std::string &cmd, std::deque<RedisBuff
     }
 }
 
+RedisSyncClient::State RedisSyncClient::state() const
+{
+    return pimpl->getState();
+}
+
 bool RedisSyncClient::stateValid() const
 {
-    assert( pimpl->state == RedisClientImpl::Connected );
+    assert( state() == State::Connected );
 
-    if( pimpl->state != RedisClientImpl::Connected )
+    if( state() != State::Connected )
     {
         std::stringstream ss;
 
         ss << "RedisClient::command called with invalid state "
-           << pimpl->state;
+           << to_string(state());
 
         pimpl->errorHandler(ss.str());
         return false;

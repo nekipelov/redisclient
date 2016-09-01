@@ -31,6 +31,8 @@ public:
         std::string channel;
     };
 
+    typedef RedisClientImpl::State State;
+
     REDIS_CLIENT_DECL RedisAsyncClient(boost::asio::io_service &ioService);
     REDIS_CLIENT_DECL ~RedisAsyncClient();
 
@@ -62,8 +64,12 @@ public:
         connect(endpoint, handler);
     }
 
-    // return true if is connected to redis
+    // Return true if is connected to redis.
+    // Deprecated: use state() == RedisAsyncClisend::State::Connected.
     REDIS_CLIENT_DECL bool isConnected() const;
+
+    // Return connection state. See RedisClientImpl::State.
+    State state() const;
 
     // disconnect from redis and clear command queue
     REDIS_CLIENT_DECL void disconnect();

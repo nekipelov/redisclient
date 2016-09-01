@@ -6,6 +6,8 @@
 
 #include <redisclient/redisasyncclient.h>
 
+using namespace redisclient;
+
 static const std::string channelName = "unique-redis-channel-name-example";
 static const boost::posix_time::seconds timeout(1);
 
@@ -51,7 +53,7 @@ protected:
     {
         std::cerr << "connectPublisher\n";
 
-        if( publisher.isConnected() )
+        if( publisher.state() == RedisAsyncClient::State::Connected )
         {
             std::cerr << "disconnectPublisher\n";
 
@@ -67,7 +69,8 @@ protected:
     {
         std::cerr << "connectSubscriber\n";
 
-        if( subscriber.isConnected() )
+        if( subscriber.state() == RedisAsyncClient::State::Connected ||
+                subscriber.state() == RedisAsyncClient::State::Subscribed )
         {
             std::cerr << "disconnectSubscriber\n";
             subscriber.disconnect();
@@ -95,7 +98,7 @@ protected:
         static size_t counter = 0;
         std::string msg = str(boost::format("message %1%")  % counter++);
 
-        if( publisher.isConnected() )
+        if( publisher.state() == RedisAsyncClient::State::Connected )
         {
             std::cerr << "pub " << msg << "\n";
             publish(msg);
@@ -148,8 +151,8 @@ private:
     const boost::asio::ip::address address;
     const unsigned short port;
 
-    redisclient::RedisAsyncClient publisher;
-    redisclient::RedisAsyncClient subscriber;
+    RedisAsyncClient publisher;
+    RedisAsyncClient subscriber;
 };
 
 int main(int, char **)

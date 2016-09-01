@@ -26,8 +26,9 @@ namespace redisclient {
 
 class RedisClientImpl : public std::enable_shared_from_this<RedisClientImpl> {
 public:
-    enum State {
-        NotConnected,
+    enum class State {
+        Unconnected,
+        Connecting,
         Connected,
         Subscribed,
         Closed
@@ -40,7 +41,7 @@ public:
             const boost::system::error_code &ec,
             const std::function<void(bool, const std::string &)> &handler);
 
-    REDIS_CLIENT_DECL void close();
+    REDIS_CLIENT_DECL void close() noexcept;
 
     REDIS_CLIENT_DECL State getState() const;
 
@@ -110,6 +111,29 @@ inline void RedisClientImpl::post(const Handler &handler)
     strand.post(handler);
 }
 
+inline std::string to_string(RedisClientImpl::State state)
+{
+    switch(state)
+    {
+        case RedisClientImpl::State::Unconnected:
+            return "Unconnected";
+            break;
+        case RedisClientImpl::State::Connecting:
+            return "Connecting";
+            break;
+        case RedisClientImpl::State::Connected:
+            return "Connected";
+            break;
+        case RedisClientImpl::State::Subscribed:
+            return "Subscribed";
+            break;
+        case RedisClientImpl::State::Closed:
+            return "Closed";
+            break;
+    }
+
+    return "Invalid";
+}
 }
 
 
