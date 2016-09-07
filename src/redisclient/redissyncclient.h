@@ -49,7 +49,7 @@ public:
             const std::string &cmd, std::deque<RedisBuffer> args);
 
     // Return connection state. See RedisClientImpl::State.
-    State state() const;
+    REDIS_CLIENT_DECL State state() const;
 
 protected:
     REDIS_CLIENT_DECL bool stateValid() const;

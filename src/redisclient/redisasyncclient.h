@@ -69,7 +69,7 @@ public:
     REDIS_CLIENT_DECL bool isConnected() const;
 
     // Return connection state. See RedisClientImpl::State.
-    State state() const;
+    REDIS_CLIENT_DECL State state() const;
 
     // disconnect from redis and clear command queue
     REDIS_CLIENT_DECL void disconnect();
