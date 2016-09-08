@@ -11,6 +11,8 @@
 
 #include <string>
 #include <list>
+#include <vector>
+#include <string.h>
 
 #include "config.h"
 
