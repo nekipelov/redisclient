@@ -1,19 +1,3 @@
-cmake_minimum_required(VERSION 2.6)
-
-FIND_PACKAGE(Boost COMPONENTS system REQUIRED)
-IF(MSVC)
-  LINK_DIRECTORIES(${Boost_LIBRARY_DIRS}) # seems to be required for Boost otherwise the autolinking doesn't find some of the libs
-ENDIF()
-
-IF(MSVC)
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W3")
-  SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /Od -DDEBUG ")
-  SET(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /O2 -DNDEBUG")
-ELSE()
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W -Wall -Wextra -Wshadow -fPIC -pthread -std=c++11")
-  SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -g3 -DDEBUG ")
-  SET(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -DNDEBUG")
-ENDIF()
 
 SET(REDISCLIENT_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/redisclient/impl/redisvalue.cpp
