@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.6)
 
 PROJECT(RedisClient)
 
-OPTION(ADDRESS_SANITIZER "Enable address sanitizer" OFF) 
+OPTION(ADDRESS_SANITIZER "Enable address sanitizer" OFF)
 
 if(NOT CMAKE_BUILD_TYPE)
     message(STATUS "No build type selected, default to Release")
@@ -16,10 +16,13 @@ if( ADDRESS_SANITIZER )
 endif()
 
 FIND_PACKAGE(Boost COMPONENTS unit_test_framework system REQUIRED)
+LINK_DIRECTORIES(${Boost_LIBRARY_DIRS}) # seems to be required for Boost otherwise the autolinking doesn't find some of the libs
 
+IF(NOT MSVC)
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W -Wall -Wextra -Wshadow -fPIC -pthread -std=c++11")
 SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -g3 -DDEBUG ")
 SET(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -DNDEBUG")
+ENDIF()
 
 SET(SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/redisclient/impl/redisvalue.cpp
@@ -69,4 +72,3 @@ ADD_SUBDIRECTORY(examples)
 INCLUDE(CTest)
 ADD_TEST(ParserTest parsertest)
 ADD_TEST(RedisValueTest redisvaluetest)
-
