@@ -35,9 +35,19 @@ void RedisAsyncClient::connect(const boost::asio::ip::address &address,
 void RedisAsyncClient::connect(const boost::asio::ip::tcp::endpoint &endpoint,
                                std::function<void(bool, const std::string &)> handler)
 {
-    pimpl->state = State::Connecting;
-    pimpl->socket.async_connect(endpoint, std::bind(&RedisClientImpl::handleAsyncConnect,
-                pimpl, std::placeholders::_1, std::move(handler)));
+    if( pimpl->state == State::Unconnected || pimpl->state == State::Closed )
+    {
+        pimpl->state = State::Connecting;
+        pimpl->socket.async_connect(endpoint, std::bind(&RedisClientImpl::handleAsyncConnect,
+                    pimpl, std::placeholders::_1, std::move(handler)));
+    }
+    else
+    {
+        std::stringstream ss;
+
+        ss << "RedisAsyncClient::connect called on socket with state " << to_string(pimpl->state);
+        handler(false, ss.str());
+    }
 }
 
 bool RedisAsyncClient::isConnected() const
