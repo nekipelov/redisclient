@@ -1,4 +1,2 @@
-*.o
-*.so
-examples/example[1-4]
-tests/parsertest
+*.swp # vim files
+build/*
