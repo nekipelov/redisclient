@@ -85,15 +85,10 @@ public:
     typedef std::multimap<std::string, SingleShotHandlerType> SingleShotHandlersMap;
 
     std::queue<std::function<void(RedisValue)> > handlers;
+    std::deque<std::vector<char>> dataWrited;
+    std::deque<std::vector<char>> dataQueued;
     MsgHandlersMap msgHandlers;
     SingleShotHandlersMap singleShotMsgHandlers;
-
-    struct QueueItem {
-        std::function<void(RedisValue)> handler;
-        std::shared_ptr<std::vector<char> > buff;
-    };
-
-    std::queue<QueueItem> queue;
 
     std::function<void(const std::string &)> errorHandler;
     State state;
