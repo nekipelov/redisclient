@@ -15,19 +15,18 @@ if( ADDRESS_SANITIZER )
     set(CMAKE_LD_FLAGS "-fsanitize=address")
 endif()
 
-FIND_PACKAGE(Boost COMPONENTS unit_test_framework system REQUIRED)
-IF(MSVC)
-  LINK_DIRECTORIES(${Boost_LIBRARY_DIRS}) # seems to be required for Boost otherwise the autolinking doesn't find some of the libs
-ENDIF()
+FIND_PACKAGE(Boost COMPONENTS unit_test_framework system program_options REQUIRED)
+
+LINK_DIRECTORIES(${Boost_LIBRARY_DIRS})
 
 IF(MSVC)
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W3")
-  SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /Od -DDEBUG ")
-  SET(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /O2 -DNDEBUG")
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W3")
+    SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /Od -DDEBUG ")
+    SET(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /O2 -DNDEBUG")
 ELSE()
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W -Wall -Wextra -Wshadow -fPIC -pthread -std=c++11")
-  SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -g3 -DDEBUG ")
-  SET(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -DNDEBUG")
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W -Wall -Wextra -fPIC -pthread -std=c++11")
+    SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -g3 -DDEBUG ")
+    SET(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -DNDEBUG")
 ENDIF()
 
 SET(SOURCES
@@ -59,17 +58,14 @@ ADD_EXECUTABLE(parsertest tests/parsertest.cpp ${SOURCES} ${HEADERS})
 ADD_EXECUTABLE(redisvaluetest tests/redisvaluetest.cpp ${SOURCES} ${HEADERS})
 ADD_LIBRARY(redisclient STATIC ${HEADERS} ${SOURCES})
 
-TARGET_LINK_LIBRARIES(parsertest
-    ${Boost_LIBRARIES}
+SET(TESTS
+    parsertest
+    redisvaluetest
 )
 
-TARGET_LINK_LIBRARIES(redisvaluetest
-    ${Boost_LIBRARIES}
-)
-
-TARGET_LINK_LIBRARIES(redisclient
-    ${Boost_LIBRARIES}
-)
+FOREACH(TEST ${TESTS})
+    TARGET_LINK_LIBRARIES(${TEST} ${Boost_SYSTEM_LIBRARY} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
+ENDFOREACH()
 
 INSTALL(DIRECTORY ${CMAKE_SOURCE_DIR}/src DESTINATION include)
 
@@ -78,3 +74,4 @@ ADD_SUBDIRECTORY(examples)
 INCLUDE(CTest)
 ADD_TEST(ParserTest parsertest)
 ADD_TEST(RedisValueTest redisvaluetest)
+
