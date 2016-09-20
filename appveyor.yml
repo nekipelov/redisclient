@@ -1,4 +1,4 @@
-version: 0.4.4.{build}-{branch}
+version: {build}-{branch}
 
 # branches to build
 branches:
@@ -9,8 +9,8 @@ skip_tags: true
 
 os: Visual Studio 2015
 
-platform: 
-    - X64 
+platform:
+    - X64
     - Win32
 
 configuration:
@@ -20,7 +20,8 @@ configuration:
 environment:
     MSVC_DEFAULT_OPTIONS: ON
     BOOST_ROOT: C:\Libraries\boost_1_59_0
-    BOOST_LIBRARYDIR: C:\Libraries\boost_1_59_0\lib32-msvc-14.0
+    BOOST_LIBRARY_DIR_WIN32: C:\Libraries\boost_1_59_0\lib32-msvc-14.0
+    BOOST_LIBRARY_DIR_WIN64: C:\Libraries\boost_1_59_0\lib64-msvc-14.0
 
 init:
   - cmd: cmake --version
@@ -32,14 +33,21 @@ build_script:
     - cd C:\projects\redisclient
     - md build
     - cd build
-    - if "%platform%"=="Win32" set CMAKE_GENERATOR_NAME=Visual Studio 14 2015
-    - if "%platform%"=="X64"   set CMAKE_GENERATOR_NAME=Visual Studio 14 2015 Win64
+    - if "%platform%"=="Win32" (
+    -     set CMAKE_GENERATOR_NAME=Visual Studio 14 2015
+    -     set BOOST_LIBRARY_DIR=%BOOST_LIBRARY_DIR_WIN32%
+    - )
+    - if "%platform%"=="X64"  (
+    -     set CMAKE_GENERATOR_NAME=Visual Studio 14 2015 Win64
+    -     set BOOST_LIBRARY_DIR=%BOOST_LIBRARY_DIR_WIN64%
+    - )
     - cmake -G "%CMAKE_GENERATOR_NAME%" -DCMAKE_BUILD_TYPE=%configuration% -DBOOST_ROOT="%BOOST_ROOT%" -DBOOST_LIBRARYDIR="%BOOST_LIBRARYDIR%" -DBoost_USE_STATIC_LIBS="ON" -Durdfdom_DIR="%urdfdom_DIR%" -Durdfdom_headers_DIR="%urdfdom_headers_DIR%" -DDART_MSVC_DEFAULT_OPTIONS="%MSVC_DEFAULT_OPTIONS%" ..
-    - cmake --build .
-    - ctest
 
 build:
-    project:
+    project: c:/projects/redisclient/build/RedisClient.sln
+
+test_script:
+    - cmd: ctest -C  %configuration% -VV
 
 after_build:
 before_test:
