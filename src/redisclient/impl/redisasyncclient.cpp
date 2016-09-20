@@ -81,12 +81,13 @@ void RedisAsyncClient::command(const std::string &cmd, std::deque<RedisBuffer> a
 RedisAsyncClient::Handle RedisAsyncClient::subscribe(
         const std::string &channel,
         std::function<void(std::vector<char> msg)> msgHandler,
-        std::function<void(RedisValue)> handler)
+        std::function<void(RedisValue)> handler,
+        bool usePattern)
 {
     assert( pimpl->state == State::Connected ||
             pimpl->state == State::Subscribed);
 
-    static const std::string subscribeStr = "SUBSCRIBE";
+    static const std::string subscribeStr = (usePattern?"PSUBSCRIBE":"SUBSCRIBE");
 
     if( pimpl->state == State::Connected || pimpl->state == State::Subscribed )
     {
@@ -114,7 +115,7 @@ RedisAsyncClient::Handle RedisAsyncClient::subscribe(
     }
 }
 
-void RedisAsyncClient::unsubscribe(const Handle &handle)
+void RedisAsyncClient::unsubscribe(const Handle &handle, bool usePattern)
 {
 #ifdef DEBUG
     static int recursion = 0;
@@ -124,7 +125,7 @@ void RedisAsyncClient::unsubscribe(const Handle &handle)
     assert( pimpl->state == State::Connected ||
             pimpl->state == State::Subscribed);
 
-    static const std::string unsubscribeStr = "UNSUBSCRIBE";
+    static const std::string unsubscribeStr = (usePattern?"PUNSUBSCRIBE":"UNSUBSCRIBE");
 
     if( pimpl->state == State::Connected ||
             pimpl->state == State::Subscribed )
@@ -172,12 +173,13 @@ void RedisAsyncClient::unsubscribe(const Handle &handle)
 
 void RedisAsyncClient::singleShotSubscribe(const std::string &channel,
                                       std::function<void(std::vector<char> msg)> msgHandler,
-                                      std::function<void(RedisValue)> handler)
+                                      std::function<void(RedisValue)> handler,
+                                      bool usePattern)
 {
     assert( pimpl->state == State::Connected ||
             pimpl->state == State::Subscribed);
 
-    static const std::string subscribeStr = "SUBSCRIBE";
+    static const std::string subscribeStr = (usePattern?"PSUBSCRIBE":"SUBSCRIBE");
 
     if( pimpl->state == State::Connected ||
             pimpl->state == State::Subscribed )

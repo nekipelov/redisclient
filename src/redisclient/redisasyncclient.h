@@ -89,10 +89,12 @@ public:
     REDIS_CLIENT_DECL Handle subscribe(
             const std::string &channelName,
             std::function<void(std::vector<char> msg)> msgHandler,
-            std::function<void(RedisValue)> handler = &dummyHandler);
+            std::function<void(RedisValue)> handler = &dummyHandler,
+            bool usePattern = false);
 
     // Unsubscribe
-    REDIS_CLIENT_DECL void unsubscribe(const Handle &handle);
+    REDIS_CLIENT_DECL void unsubscribe(const Handle &handle,
+                                       bool usePattern = false);
 
     // Subscribe to channel. Handler msgHandler will be called
     // when someone publish message on channel; it will be 
@@ -100,7 +102,8 @@ public:
     REDIS_CLIENT_DECL void singleShotSubscribe(
             const std::string &channel,
             std::function<void(std::vector<char> msg)> msgHandler,
-            std::function<void(RedisValue)> handler = &dummyHandler);
+            std::function<void(RedisValue)> handler = &dummyHandler,
+            bool usePattern = false);
 
     // Publish message on channel.
     REDIS_CLIENT_DECL void publish(

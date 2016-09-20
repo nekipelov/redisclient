@@ -56,12 +56,14 @@ void RedisClientImpl::doProcessMessage(RedisValue v)
     if( state == State::Subscribed )
     {
         std::vector<RedisValue> result = v.toArray();
+        auto rsize = result.size();
 
-        if( result.size() == 3 )
+        if( rsize >= 3 )
         {
-            const RedisValue &command = result[0];
-            const RedisValue &queueName = result[1];
-            const RedisValue &value = result[2];
+            const RedisValue &command   = result[0];
+            const RedisValue &queueName = result[(rsize == 3)?1:2];
+            const RedisValue &value     = result[(rsize == 3)?2:3];
+            const RedisValue &pattern   = (rsize == 4) ? result[1] : "";
 
             std::string cmd = command.toString();
 
@@ -82,12 +84,40 @@ void RedisClientImpl::doProcessMessage(RedisValue v)
                     strand.post(std::bind(handlerIt->second.second, value.toByteArray()));
                 }
             }
+            else if (cmd == "pmessage")
+            {
+                SingleShotHandlersMap::iterator it = singleShotMsgHandlers.find(pattern.toString());
+                if (it != singleShotMsgHandlers.end())
+                {
+                    strand.post(std::bind(it->second, value.toByteArray()));
+                    singleShotMsgHandlers.erase(it);
+                }
+
+                std::pair<MsgHandlersMap::iterator, MsgHandlersMap::iterator> pair =
+                    msgHandlers.equal_range(pattern.toString());
+                for (MsgHandlersMap::iterator handlerIt = pair.first;
+                    handlerIt != pair.second; ++handlerIt)
+                {
+                    strand.post(std::bind(handlerIt->second.second, value.toByteArray()));
+                }
+            }
+
             else if( cmd == "subscribe" && handlers.empty() == false )
             {
                 handlers.front()(std::move(v));
                 handlers.pop();
             }
             else if(cmd == "unsubscribe" && handlers.empty() == false )
+            {
+                handlers.front()(std::move(v));
+                handlers.pop();
+            }
+            else if (cmd == "psubscribe" && handlers.empty() == false)
+            {
+                handlers.front()(std::move(v));
+                handlers.pop();
+            }
+            else if (cmd == "punsubscribe" && handlers.empty() == false)
             {
                 handlers.front()(std::move(v));
                 handlers.pop();
@@ -103,6 +133,7 @@ void RedisClientImpl::doProcessMessage(RedisValue v)
                 return;
             }
         }
+
         else
         {
             errorHandler("[RedisClient] Protocol error");
