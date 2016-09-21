@@ -63,7 +63,7 @@ SET(TESTS
 )
 
 FOREACH(TEST ${TESTS})
-    TARGET_LINK_LIBRARIES(${TEST} ${Boost_SYSTEM_LIBRARY} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
+    TARGET_LINK_LIBRARIES(${TEST} Boost::system Boost::unit_test_framework Boost::disable_autolinking Boost::dynamic_linking)
 ENDFOREACH()
 
 INSTALL(DIRECTORY ${CMAKE_SOURCE_DIR}/src DESTINATION include)
