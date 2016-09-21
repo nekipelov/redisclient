@@ -86,15 +86,18 @@ public:
     // Subscribe to channel. Handler msgHandler will be called
     // when someone publish message on channel. Call unsubscribe 
     // to stop the subscription.
-    REDIS_CLIENT_DECL Handle subscribe(
-            const std::string &channelName,
-            std::function<void(std::vector<char> msg)> msgHandler,
-            std::function<void(RedisValue)> handler = &dummyHandler,
-            bool usePattern = false);
+    REDIS_CLIENT_DECL Handle subscribe(const std::string &channelName,
+                                       std::function<void(std::vector<char> msg)> msgHandler,
+                                       std::function<void(RedisValue)> handler = &dummyHandler);
+
+
+    REDIS_CLIENT_DECL Handle psubscribe(const std::string &pattern,
+                                        std::function<void(std::vector<char> msg)> msgHandler,
+                                        std::function<void(RedisValue)> handler = &dummyHandler);
 
     // Unsubscribe
-    REDIS_CLIENT_DECL void unsubscribe(const Handle &handle,
-                                       bool usePattern = false);
+    REDIS_CLIENT_DECL void unsubscribe(const Handle &handle);
+    REDIS_CLIENT_DECL void punsubscribe(const Handle &handle);
 
     // Subscribe to channel. Handler msgHandler will be called
     // when someone publish message on channel; it will be 
@@ -102,8 +105,12 @@ public:
     REDIS_CLIENT_DECL void singleShotSubscribe(
             const std::string &channel,
             std::function<void(std::vector<char> msg)> msgHandler,
-            std::function<void(RedisValue)> handler = &dummyHandler,
-            bool usePattern = false);
+            std::function<void(RedisValue)> handler = &dummyHandler);
+
+    REDIS_CLIENT_DECL void singleShotPSubscribe(
+            const std::string &channel,
+            std::function<void(std::vector<char> msg)> msgHandler,
+            std::function<void(RedisValue)> handler = &dummyHandler);
 
     // Publish message on channel.
     REDIS_CLIENT_DECL void publish(

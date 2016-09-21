@@ -350,6 +350,123 @@ void RedisClientImpl::append(std::vector<char> &vec, char c)
     vec[vec.size() - 1] = c;
 }
 
+size_t RedisClientImpl::subscribe(
+    const std::string &command,
+    const std::string &channel,
+    std::function<void(std::vector<char> msg)> msgHandler,
+    std::function<void(RedisValue)> handler)
+{
+    assert(state == State::Connected ||
+           state == State::Subscribed);
+
+    if (state == State::Connected || state == State::Subscribed)
+    {
+        std::deque<RedisBuffer> items{ command, channel };
+
+        post(std::bind(&RedisClientImpl::doAsyncCommand, this, makeCommand(items), std::move(handler)));
+        msgHandlers.insert(std::make_pair(channel, std::make_pair(subscribeSeq, std::move(msgHandler))));
+        state = State::Subscribed;
+
+        return subscribeSeq++;
+    }
+    else
+    {
+        std::stringstream ss;
+
+        ss << "RedisClientImpl::subscribe called with invalid state "
+            << to_string(state);
+
+        errorHandler(ss.str());
+        return 0;
+    }
+}
+
+void RedisClientImpl::singleShotSubscribe(
+    const std::string &command,
+    const std::string &channel,
+    std::function<void(std::vector<char> msg)> msgHandler,
+    std::function<void(RedisValue)> handler)
+{
+    assert(state == State::Connected ||
+           state == State::Subscribed);
+
+    if (state == State::Connected ||
+        state == State::Subscribed)
+    {
+        std::deque<RedisBuffer> items{ command, channel };
+
+        post(std::bind(&RedisClientImpl::doAsyncCommand, this, makeCommand(items), std::move(handler)));
+        singleShotMsgHandlers.insert(std::make_pair(channel, std::move(msgHandler)));
+        state = State::Subscribed;
+    }
+    else
+    {
+        std::stringstream ss;
+
+        ss << "RedisClientImpl::singleShotSubscribe called with invalid state "
+            << to_string(state);
+
+        errorHandler(ss.str());
+    }
+}
+
+void RedisClientImpl::unsubscribe(const std::string &command, 
+                                  size_t handle_id, 
+                                  const std::string &channel,
+                                  std::function<void(RedisValue)> handler)
+{
+#ifdef DEBUG
+    static int recursion = 0;
+    assert(recursion++ == 0);
+#endif
+
+    assert(state == State::Connected ||
+           state == State::Subscribed);
+
+    if (state == State::Connected ||
+        state == State::Subscribed)
+    {
+        // Remove subscribe-handler
+        typedef RedisClientImpl::MsgHandlersMap::iterator iterator;
+        std::pair<iterator, iterator> pair = msgHandlers.equal_range(channel);
+
+        for (iterator it = pair.first; it != pair.second;)
+        {
+            if (it->second.first == handle_id)
+            {
+                msgHandlers.erase(it++);
+            }
+            else
+            {
+                ++it;
+            }
+        }
+
+        std::deque<RedisBuffer> items{ command, channel };
+
+        // Unsubscribe command for Redis
+        post(std::bind(&RedisClientImpl::doAsyncCommand, this,
+             makeCommand(items), handler));
+    }
+    else
+    {
+        std::stringstream ss;
+
+        ss << "RedisClientImpl::unsubscribe called with invalid state "
+            << to_string(state);
+
+#ifdef DEBUG
+        --recursion;
+#endif
+        errorHandler(ss.str());
+        return;
+    }
+
+#ifdef DEBUG
+    --recursion;
+#endif
+}
+
 }
 
 #endif // REDISCLIENT_REDISCLIENTIMPL_CPP
