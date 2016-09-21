@@ -15,9 +15,8 @@ if( ADDRESS_SANITIZER )
     set(CMAKE_LD_FLAGS "-fsanitize=address")
 endif()
 
-FIND_PACKAGE(Boost COMPONENTS unit_test_framework system program_options REQUIRED)
-
-LINK_DIRECTORIES(${Boost_LIBRARY_DIRS})
+FIND_PACKAGE(Boost COMPONENTS unit_test_framework system program_options date_time REQUIRED)
+ADD_DEFINITIONS("-DBOOST_ALL_NO_LIB")
 
 IF(MSVC)
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W3")

@@ -36,17 +36,8 @@ ENDFOREACH()
 FOREACH(EXAMPLE ${EXAMPLES})
     GET_FILENAME_COMPONENT(EXECUTABLE ${EXAMPLE} NAME_WE)
     ADD_EXECUTABLE(${EXECUTABLE} ${EXAMPLE} ${REDISCLIENT_SOURCES})
-
-	# we are using Boost autolinking in Windows
-	IF(NOT MSVC)
-		TARGET_LINK_LIBRARIES(${EXECUTABLE} ${Boost_SYSTEM_LIBRARY})
-	ENDIF()
+	TARGET_LINK_LIBRARIES(${EXECUTABLE} Boost::system)
 ENDFOREACH(EXAMPLE)
 
-# we are using Boost autolinking in Windows
-IF(NOT MSVC)
-	TARGET_LINK_LIBRARIES(benchmark
-		${Boost_PROGRAM_OPTIONS_LIBRARY}
-	)
-ENDIF()
+TARGET_LINK_LIBRARIES(benchmark Boost::program_options Boost::date_time Boost::disable_autolinking Boost::dynamic_linking)
 
