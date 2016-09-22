@@ -83,8 +83,8 @@ RedisAsyncClient::Handle RedisAsyncClient::subscribe(
         std::function<void(std::vector<char> msg)> msgHandler,
         std::function<void(RedisValue)> handler)
 {
-    auto handle_id = pimpl->subscribe("subscribe", channel, msgHandler, handler);    
-    return { handle_id , channel };
+    auto handleId = pimpl->subscribe("subscribe", channel, msgHandler, handler);    
+    return { handleId , channel };
 }
 
 RedisAsyncClient::Handle RedisAsyncClient::psubscribe(
@@ -92,8 +92,8 @@ RedisAsyncClient::Handle RedisAsyncClient::psubscribe(
     std::function<void(std::vector<char> msg)> msgHandler,
     std::function<void(RedisValue)> handler)
 {
-    auto handle_id = pimpl->subscribe("psubscribe", pattern, msgHandler, handler);
-    return{ handle_id , pattern };
+    auto handleId = pimpl->subscribe("psubscribe", pattern, msgHandler, handler);
+    return{ handleId , pattern };
 }
 
 void RedisAsyncClient::unsubscribe(const Handle &handle)

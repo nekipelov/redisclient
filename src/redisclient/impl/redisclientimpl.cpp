@@ -56,14 +56,14 @@ void RedisClientImpl::doProcessMessage(RedisValue v)
     if( state == State::Subscribed )
     {
         std::vector<RedisValue> result = v.toArray();
-        auto rsize = result.size();
+        auto resultSize = result.size();
 
-        if( rsize >= 3 )
+        if( resultSize >= 3 )
         {
             const RedisValue &command   = result[0];
-            const RedisValue &queueName = result[(rsize == 3)?1:2];
-            const RedisValue &value     = result[(rsize == 3)?2:3];
-            const RedisValue &pattern   = (rsize == 4) ? result[1] : "";
+            const RedisValue &queueName = result[(resultSize == 3)?1:2];
+            const RedisValue &value     = result[(resultSize == 3)?2:3];
+            const RedisValue &pattern   = (resultSize == 4) ? result[1] : "";
 
             std::string cmd = command.toString();
 
@@ -411,7 +411,7 @@ void RedisClientImpl::singleShotSubscribe(
 }
 
 void RedisClientImpl::unsubscribe(const std::string &command, 
-                                  size_t handle_id, 
+                                  size_t handleId, 
                                   const std::string &channel,
                                   std::function<void(RedisValue)> handler)
 {
@@ -432,7 +432,7 @@ void RedisClientImpl::unsubscribe(const std::string &command,
 
         for (iterator it = pair.first; it != pair.second;)
         {
-            if (it->second.first == handle_id)
+            if (it->second.first == handleId)
             {
                 msgHandlers.erase(it++);
             }
