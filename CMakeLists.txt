@@ -15,9 +15,10 @@ if( ADDRESS_SANITIZER )
     set(CMAKE_LD_FLAGS "-fsanitize=address")
 endif()
 
-FIND_PACKAGE(Boost COMPONENTS unit_test_framework system program_options REQUIRED)
-
-LINK_DIRECTORIES(${Boost_LIBRARY_DIRS})
+SET(Boost_USE_STATIC_LIBS OFF)
+SET(Boost_USE_MULTITHREADED ON)
+ADD_DEFINITIONS(-DBOOST_ALL_NO_LIB -DBOOST_ALL_DYN_LINK)
+FIND_PACKAGE(Boost COMPONENTS unit_test_framework system program_options date_time REQUIRED)
 
 IF(MSVC)
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W3")
@@ -64,7 +65,7 @@ SET(TESTS
 )
 
 FOREACH(TEST ${TESTS})
-    TARGET_LINK_LIBRARIES(${TEST} ${Boost_SYSTEM_LIBRARY} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
+    TARGET_LINK_LIBRARIES(${TEST} ${Boost_LIBRARIES})
 ENDFOREACH()
 
 
@@ -75,4 +76,3 @@ ADD_SUBDIRECTORY(examples)
 INCLUDE(CTest)
 ADD_TEST(ParserTest parsertest)
 ADD_TEST(RedisValueTest redisvaluetest)
-
