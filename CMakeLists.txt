@@ -15,7 +15,15 @@ if( ADDRESS_SANITIZER )
     set(CMAKE_LD_FLAGS "-fsanitize=address")
 endif()
 
-FIND_PACKAGE(Boost COMPONENTS unit_test_framework system program_options REQUIRED)
+if(MSVC)
+    ADD_DEFINITIONS(-DBOOST_ALL_NO_LIB)
+endif()
+
+if(NOT Boost_USE_STATIC_LIBS)
+    ADD_DEFINITIONS(-DBOOST_ALL_DYN_LINK)
+endif()
+
+FIND_PACKAGE(Boost COMPONENTS system program_options unit_test_framework date_time REQUIRED)
 
 LINK_DIRECTORIES(${Boost_LIBRARY_DIRS})
 
@@ -64,7 +72,7 @@ SET(TESTS
 )
 
 FOREACH(TEST ${TESTS})
-    TARGET_LINK_LIBRARIES(${TEST} ${Boost_SYSTEM_LIBRARY} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
+    TARGET_LINK_LIBRARIES(${TEST} ${Boost_SYSTEM_LIBRARY} ${Boost_DATE_TIME_LIBRARY} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
 ENDFOREACH()
 
 
