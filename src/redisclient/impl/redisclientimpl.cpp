@@ -56,12 +56,14 @@ void RedisClientImpl::doProcessMessage(RedisValue v)
     if( state == State::Subscribed )
     {
         std::vector<RedisValue> result = v.toArray();
+        auto resultSize = result.size();
 
-        if( result.size() == 3 )
+        if( resultSize >= 3 )
         {
-            const RedisValue &command = result[0];
-            const RedisValue &queueName = result[1];
-            const RedisValue &value = result[2];
+            const RedisValue &command   = result[0];
+            const RedisValue &queueName = result[(resultSize == 3)?1:2];
+            const RedisValue &value     = result[(resultSize == 3)?2:3];
+            const RedisValue &pattern   = (resultSize == 4) ? result[1] : "";
 
             std::string cmd = command.toString();
 
@@ -82,12 +84,40 @@ void RedisClientImpl::doProcessMessage(RedisValue v)
                     strand.post(std::bind(handlerIt->second.second, value.toByteArray()));
                 }
             }
+            else if (cmd == "pmessage")
+            {
+                SingleShotHandlersMap::iterator it = singleShotMsgHandlers.find(pattern.toString());
+                if (it != singleShotMsgHandlers.end())
+                {
+                    strand.post(std::bind(it->second, value.toByteArray()));
+                    singleShotMsgHandlers.erase(it);
+                }
+
+                std::pair<MsgHandlersMap::iterator, MsgHandlersMap::iterator> pair =
+                    msgHandlers.equal_range(pattern.toString());
+                for (MsgHandlersMap::iterator handlerIt = pair.first;
+                    handlerIt != pair.second; ++handlerIt)
+                {
+                    strand.post(std::bind(handlerIt->second.second, value.toByteArray()));
+                }
+            }
+
             else if( cmd == "subscribe" && handlers.empty() == false )
             {
                 handlers.front()(std::move(v));
                 handlers.pop();
             }
             else if(cmd == "unsubscribe" && handlers.empty() == false )
+            {
+                handlers.front()(std::move(v));
+                handlers.pop();
+            }
+            else if (cmd == "psubscribe" && handlers.empty() == false)
+            {
+                handlers.front()(std::move(v));
+                handlers.pop();
+            }
+            else if (cmd == "punsubscribe" && handlers.empty() == false)
             {
                 handlers.front()(std::move(v));
                 handlers.pop();
@@ -103,6 +133,7 @@ void RedisClientImpl::doProcessMessage(RedisValue v)
                 return;
             }
         }
+
         else
         {
             errorHandler("[RedisClient] Protocol error");
@@ -317,6 +348,123 @@ void RedisClientImpl::append(std::vector<char> &vec, char c)
 {
     vec.resize(vec.size() + 1);
     vec[vec.size() - 1] = c;
+}
+
+size_t RedisClientImpl::subscribe(
+    const std::string &command,
+    const std::string &channel,
+    std::function<void(std::vector<char> msg)> msgHandler,
+    std::function<void(RedisValue)> handler)
+{
+    assert(state == State::Connected ||
+           state == State::Subscribed);
+
+    if (state == State::Connected || state == State::Subscribed)
+    {
+        std::deque<RedisBuffer> items{ command, channel };
+
+        post(std::bind(&RedisClientImpl::doAsyncCommand, this, makeCommand(items), std::move(handler)));
+        msgHandlers.insert(std::make_pair(channel, std::make_pair(subscribeSeq, std::move(msgHandler))));
+        state = State::Subscribed;
+
+        return subscribeSeq++;
+    }
+    else
+    {
+        std::stringstream ss;
+
+        ss << "RedisClientImpl::subscribe called with invalid state "
+            << to_string(state);
+
+        errorHandler(ss.str());
+        return 0;
+    }
+}
+
+void RedisClientImpl::singleShotSubscribe(
+    const std::string &command,
+    const std::string &channel,
+    std::function<void(std::vector<char> msg)> msgHandler,
+    std::function<void(RedisValue)> handler)
+{
+    assert(state == State::Connected ||
+           state == State::Subscribed);
+
+    if (state == State::Connected ||
+        state == State::Subscribed)
+    {
+        std::deque<RedisBuffer> items{ command, channel };
+
+        post(std::bind(&RedisClientImpl::doAsyncCommand, this, makeCommand(items), std::move(handler)));
+        singleShotMsgHandlers.insert(std::make_pair(channel, std::move(msgHandler)));
+        state = State::Subscribed;
+    }
+    else
+    {
+        std::stringstream ss;
+
+        ss << "RedisClientImpl::singleShotSubscribe called with invalid state "
+            << to_string(state);
+
+        errorHandler(ss.str());
+    }
+}
+
+void RedisClientImpl::unsubscribe(const std::string &command, 
+                                  size_t handleId, 
+                                  const std::string &channel,
+                                  std::function<void(RedisValue)> handler)
+{
+#ifdef DEBUG
+    static int recursion = 0;
+    assert(recursion++ == 0);
+#endif
+
+    assert(state == State::Connected ||
+           state == State::Subscribed);
+
+    if (state == State::Connected ||
+        state == State::Subscribed)
+    {
+        // Remove subscribe-handler
+        typedef RedisClientImpl::MsgHandlersMap::iterator iterator;
+        std::pair<iterator, iterator> pair = msgHandlers.equal_range(channel);
+
+        for (iterator it = pair.first; it != pair.second;)
+        {
+            if (it->second.first == handleId)
+            {
+                msgHandlers.erase(it++);
+            }
+            else
+            {
+                ++it;
+            }
+        }
+
+        std::deque<RedisBuffer> items{ command, channel };
+
+        // Unsubscribe command for Redis
+        post(std::bind(&RedisClientImpl::doAsyncCommand, this,
+             makeCommand(items), handler));
+    }
+    else
+    {
+        std::stringstream ss;
+
+        ss << "RedisClientImpl::unsubscribe called with invalid state "
+            << to_string(state);
+
+#ifdef DEBUG
+        --recursion;
+#endif
+        errorHandler(ss.str());
+        return;
+    }
+
+#ifdef DEBUG
+    --recursion;
+#endif
 }
 
 }

@@ -83,123 +83,42 @@ RedisAsyncClient::Handle RedisAsyncClient::subscribe(
         std::function<void(std::vector<char> msg)> msgHandler,
         std::function<void(RedisValue)> handler)
 {
-    assert( pimpl->state == State::Connected ||
-            pimpl->state == State::Subscribed);
+    auto handleId = pimpl->subscribe("subscribe", channel, msgHandler, handler);    
+    return { handleId , channel };
+}
 
-    static const std::string subscribeStr = "SUBSCRIBE";
-
-    if( pimpl->state == State::Connected || pimpl->state == State::Subscribed )
-    {
-        Handle handle = {pimpl->subscribeSeq++, channel};
-
-        std::deque<RedisBuffer> items {subscribeStr, channel};
-
-        pimpl->post(std::bind(&RedisClientImpl::doAsyncCommand, pimpl,
-                    pimpl->makeCommand(items),  std::move(handler)));
-        pimpl->msgHandlers.insert(std::make_pair(channel, std::make_pair(handle.id,
-                        std::move(msgHandler))));
-        pimpl->state = State::Subscribed;
-
-        return handle;
-    }
-    else
-    {
-        std::stringstream ss;
-
-        ss << "RedisAsyncClient::command called with invalid state "
-           << to_string(pimpl->state);
-
-        pimpl->errorHandler(ss.str());
-        return Handle();
-    }
+RedisAsyncClient::Handle RedisAsyncClient::psubscribe(
+    const std::string &pattern,
+    std::function<void(std::vector<char> msg)> msgHandler,
+    std::function<void(RedisValue)> handler)
+{
+    auto handleId = pimpl->subscribe("psubscribe", pattern, msgHandler, handler);
+    return{ handleId , pattern };
 }
 
 void RedisAsyncClient::unsubscribe(const Handle &handle)
 {
-#ifdef DEBUG
-    static int recursion = 0;
-    assert( recursion++ == 0 );
-#endif
+    pimpl->unsubscribe("unsubscribe", handle.id, handle.channel, dummyHandler);
+}
 
-    assert( pimpl->state == State::Connected ||
-            pimpl->state == State::Subscribed);
-
-    static const std::string unsubscribeStr = "UNSUBSCRIBE";
-
-    if( pimpl->state == State::Connected ||
-            pimpl->state == State::Subscribed )
-    {
-        // Remove subscribe-handler
-        typedef RedisClientImpl::MsgHandlersMap::iterator iterator;
-        std::pair<iterator, iterator> pair = pimpl->msgHandlers.equal_range(handle.channel);
-
-        for(iterator it = pair.first; it != pair.second;)
-        {
-            if( it->second.first == handle.id )
-            {
-                pimpl->msgHandlers.erase(it++);
-            }
-            else
-            {
-                ++it;
-            }
-        }
-
-        std::deque<RedisBuffer> items {unsubscribeStr, handle.channel};
-
-        // Unsubscribe command for Redis
-        pimpl->post(std::bind(&RedisClientImpl::doAsyncCommand, pimpl,
-                    pimpl->makeCommand(items), dummyHandler));
-    }
-    else
-    {
-        std::stringstream ss;
-
-        ss << "RedisAsyncClient::command called with invalid state "
-           << to_string(pimpl->state);
-
-#ifdef DEBUG
-        --recursion;
-#endif
-        pimpl->errorHandler(ss.str());
-        return;
-    }
-
-#ifdef DEBUG
-    --recursion;
-#endif
+void RedisAsyncClient::punsubscribe(const Handle &handle)
+{
+    pimpl->unsubscribe("punsubscribe", handle.id, handle.channel, dummyHandler);
 }
 
 void RedisAsyncClient::singleShotSubscribe(const std::string &channel,
-                                      std::function<void(std::vector<char> msg)> msgHandler,
-                                      std::function<void(RedisValue)> handler)
+                                           std::function<void(std::vector<char> msg)> msgHandler,
+                                           std::function<void(RedisValue)> handler)
 {
-    assert( pimpl->state == State::Connected ||
-            pimpl->state == State::Subscribed);
-
-    static const std::string subscribeStr = "SUBSCRIBE";
-
-    if( pimpl->state == State::Connected ||
-            pimpl->state == State::Subscribed )
-    {
-        std::deque<RedisBuffer> items {subscribeStr, channel};
-
-        pimpl->post(std::bind(&RedisClientImpl::doAsyncCommand, pimpl,
-                    pimpl->makeCommand(items), std::move(handler)));
-        pimpl->singleShotMsgHandlers.insert(std::make_pair(channel, std::move(msgHandler)));
-        pimpl->state = State::Subscribed;
-    }
-    else
-    {
-        std::stringstream ss;
-
-        ss << "RedisAsyncClient::command called with invalid state "
-           << to_string(pimpl->state);
-
-        pimpl->errorHandler(ss.str());
-    }
+    pimpl->singleShotSubscribe("subscribe", channel, msgHandler, handler);
 }
 
+void RedisAsyncClient::singleShotPSubscribe(const std::string &pattern,
+    std::function<void(std::vector<char> msg)> msgHandler,
+    std::function<void(RedisValue)> handler)
+{
+    pimpl->singleShotSubscribe("psubscribe", pattern, msgHandler, handler);
+}
 
 void RedisAsyncClient::publish(const std::string &channel, const RedisBuffer &msg,
                           std::function<void(RedisValue)> handler)

@@ -41,6 +41,20 @@ public:
             const boost::system::error_code &ec,
             const std::function<void(bool, const std::string &)> &handler);
 
+    REDIS_CLIENT_DECL size_t subscribe(const std::string &command,
+        const std::string &channel,
+        std::function<void(std::vector<char> msg)> msgHandler,
+        std::function<void(RedisValue)> handler);
+
+    REDIS_CLIENT_DECL void singleShotSubscribe(const std::string &command,
+        const std::string &channel,
+        std::function<void(std::vector<char> msg)> msgHandler,
+        std::function<void(RedisValue)> handler);
+
+    REDIS_CLIENT_DECL void unsubscribe(const std::string &command, 
+        size_t handle_id, const std::string &channel, 
+        std::function<void(RedisValue)> handler);
+
     REDIS_CLIENT_DECL void close() noexcept;
 
     REDIS_CLIENT_DECL State getState() const;
