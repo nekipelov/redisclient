@@ -134,6 +134,8 @@ protected:
             std::cerr << "onSubscriberConnected ok\n";
             subscriber.subscribe(channelName,
                                  std::bind(&Client::onMessage, this, std::placeholders::_1));
+            subscriber.psubscribe("*",
+                                 std::bind(&Client::onMessage, this, std::placeholders::_1));
         }
     }
 
