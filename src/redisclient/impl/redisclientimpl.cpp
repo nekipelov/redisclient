@@ -67,7 +67,7 @@ void RedisClientImpl::doProcessMessage(RedisValue v)
 
             std::string cmd = command.toString();
 
-            if( cmd == "message" )
+            if( cmd == "message" || cmd == "pmessage" )
             {
                 SingleShotHandlersMap::iterator it = singleShotMsgHandlers.find(queueName.toString());
                 if( it != singleShotMsgHandlers.end() )
@@ -84,40 +84,10 @@ void RedisClientImpl::doProcessMessage(RedisValue v)
                     strand.post(std::bind(handlerIt->second.second, value.toByteArray()));
                 }
             }
-            else if (cmd == "pmessage")
-            {
-                SingleShotHandlersMap::iterator it = singleShotMsgHandlers.find(pattern.toString());
-                if (it != singleShotMsgHandlers.end())
-                {
-                    strand.post(std::bind(it->second, value.toByteArray()));
-                    singleShotMsgHandlers.erase(it);
-                }
-
-                std::pair<MsgHandlersMap::iterator, MsgHandlersMap::iterator> pair =
-                    msgHandlers.equal_range(pattern.toString());
-                for (MsgHandlersMap::iterator handlerIt = pair.first;
-                    handlerIt != pair.second; ++handlerIt)
-                {
-                    strand.post(std::bind(handlerIt->second.second, value.toByteArray()));
-                }
-            }
-
-            else if( cmd == "subscribe" && handlers.empty() == false )
-            {
-                handlers.front()(std::move(v));
-                handlers.pop();
-            }
-            else if(cmd == "unsubscribe" && handlers.empty() == false )
-            {
-                handlers.front()(std::move(v));
-                handlers.pop();
-            }
-            else if (cmd == "psubscribe" && handlers.empty() == false)
-            {
-                handlers.front()(std::move(v));
-                handlers.pop();
-            }
-            else if (cmd == "punsubscribe" && handlers.empty() == false)
+            else if( handlers.empty() == false &&
+                    (cmd == "subscribe" || cmd == "unsubscribe" ||
+                    cmd == "psubscribe" || cmd == "punsubscribe")
+                   )
             {
                 handlers.front()(std::move(v));
                 handlers.pop();
