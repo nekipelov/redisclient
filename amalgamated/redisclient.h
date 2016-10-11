@@ -340,6 +340,20 @@ public:
             const boost::system::error_code &ec,
             const std::function<void(bool, const std::string &)> &handler);
 
+     size_t subscribe(const std::string &command,
+        const std::string &channel,
+        std::function<void(std::vector<char> msg)> msgHandler,
+        std::function<void(RedisValue)> handler);
+
+     void singleShotSubscribe(const std::string &command,
+        const std::string &channel,
+        std::function<void(std::vector<char> msg)> msgHandler,
+        std::function<void(RedisValue)> handler);
+
+     void unsubscribe(const std::string &command, 
+        size_t handle_id, const std::string &channel, 
+        std::function<void(RedisValue)> handler);
+
      void close() noexcept;
 
      State getState() const;
@@ -524,18 +538,28 @@ public:
     // Subscribe to channel. Handler msgHandler will be called
     // when someone publish message on channel. Call unsubscribe 
     // to stop the subscription.
-     Handle subscribe(
-            const std::string &channelName,
-            std::function<void(std::vector<char> msg)> msgHandler,
-            std::function<void(RedisValue)> handler = &dummyHandler);
+     Handle subscribe(const std::string &channelName,
+                                       std::function<void(std::vector<char> msg)> msgHandler,
+                                       std::function<void(RedisValue)> handler = &dummyHandler);
+
+
+     Handle psubscribe(const std::string &pattern,
+                                        std::function<void(std::vector<char> msg)> msgHandler,
+                                        std::function<void(RedisValue)> handler = &dummyHandler);
 
     // Unsubscribe
      void unsubscribe(const Handle &handle);
+     void punsubscribe(const Handle &handle);
 
     // Subscribe to channel. Handler msgHandler will be called
     // when someone publish message on channel; it will be 
     // unsubscribed after call.
      void singleShotSubscribe(
+            const std::string &channel,
+            std::function<void(std::vector<char> msg)> msgHandler,
+            std::function<void(RedisValue)> handler = &dummyHandler);
+
+     void singleShotPSubscribe(
             const std::string &channel,
             std::function<void(std::vector<char> msg)> msgHandler,
             std::function<void(RedisValue)> handler = &dummyHandler);

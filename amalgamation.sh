@@ -18,15 +18,12 @@ do
     cat "$file" >> "$AMALGAMATION_FILE_NAME.h"
 done
 
-for file in `find src -name '*.cpp'`
-do
-    cat "$file" >> "$AMALGAMATION_FILE_NAME.cpp"
-done
+find src -name '*.cpp' -print0 | sort -z | xargs -r0 cat >> "$AMALGAMATION_FILE_NAME.cpp"
 
 sed -i 's|# *ifn\?def .*$||' "$AMALGAMATION_FILE_NAME.h"
 sed -i 's|# *endif.*$||' "$AMALGAMATION_FILE_NAME.h"
 sed -i 's|#include ".*$||' "$AMALGAMATION_FILE_NAME.h"
 sed -i 's|#include ".*$||' "$AMALGAMATION_FILE_NAME.cpp"
 sed -i 's|REDIS_CLIENT_DECL||' "$AMALGAMATION_FILE_NAME.h"
-sed -i "1s/^/#include \"$AMALGAMATION_FILE_NAME.h\"/" "$AMALGAMATION_FILE_NAME.cpp"
+sed -i '1s|^|#include "redisclient.h"|' "$AMALGAMATION_FILE_NAME.cpp"
 

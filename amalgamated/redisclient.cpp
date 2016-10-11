@@ -1,4 +1,181 @@
+#include "redisclient.h"
+/*
+ * Copyright (C) Alex Nekipelov (alex@nekipelov.net)
+ * License: MIT
+ */
 
+#ifndef REDISASYNCCLIENT_REDISASYNCCLIENT_CPP
+#define REDISASYNCCLIENT_REDISASYNCCLIENT_CPP
+
+#include <memory>
+#include <functional>
+
+
+
+namespace redisclient {
+
+RedisAsyncClient::RedisAsyncClient(boost::asio::io_service &ioService)
+    : pimpl(std::make_shared<RedisClientImpl>(ioService))
+{
+    pimpl->errorHandler = std::bind(&RedisClientImpl::defaulErrorHandler, std::placeholders::_1);
+}
+
+RedisAsyncClient::~RedisAsyncClient()
+{
+    pimpl->close();
+}
+
+void RedisAsyncClient::connect(const boost::asio::ip::address &address,
+                               unsigned short port,
+                               std::function<void(bool, const std::string &)> handler)
+{
+    boost::asio::ip::tcp::endpoint endpoint(address, port);
+    connect(endpoint, std::move(handler));
+}
+
+void RedisAsyncClient::connect(const boost::asio::ip::tcp::endpoint &endpoint,
+                               std::function<void(bool, const std::string &)> handler)
+{
+    if( pimpl->state == State::Unconnected || pimpl->state == State::Closed )
+    {
+        pimpl->state = State::Connecting;
+        pimpl->socket.async_connect(endpoint, std::bind(&RedisClientImpl::handleAsyncConnect,
+                    pimpl, std::placeholders::_1, std::move(handler)));
+    }
+    else
+    {
+        std::stringstream ss;
+
+        ss << "RedisAsyncClient::connect called on socket with state " << to_string(pimpl->state);
+        handler(false, ss.str());
+    }
+}
+
+bool RedisAsyncClient::isConnected() const
+{
+    return pimpl->getState() == State::Connected ||
+            pimpl->getState() == State::Subscribed;
+}
+
+void RedisAsyncClient::disconnect()
+{
+    pimpl->close();
+}
+
+void RedisAsyncClient::installErrorHandler(std::function<void(const std::string &)> handler)
+{
+    pimpl->errorHandler = std::move(handler);
+}
+
+void RedisAsyncClient::command(const std::string &cmd, std::deque<RedisBuffer> args,
+                          std::function<void(RedisValue)> handler)
+{
+    if(stateValid())
+    {
+        args.emplace_front(cmd);
+
+        pimpl->post(std::bind(&RedisClientImpl::doAsyncCommand, pimpl,
+                    std::move(pimpl->makeCommand(args)), std::move(handler)));
+    }
+}
+
+RedisAsyncClient::Handle RedisAsyncClient::subscribe(
+        const std::string &channel,
+        std::function<void(std::vector<char> msg)> msgHandler,
+        std::function<void(RedisValue)> handler)
+{
+    auto handleId = pimpl->subscribe("subscribe", channel, msgHandler, handler);    
+    return { handleId , channel };
+}
+
+RedisAsyncClient::Handle RedisAsyncClient::psubscribe(
+    const std::string &pattern,
+    std::function<void(std::vector<char> msg)> msgHandler,
+    std::function<void(RedisValue)> handler)
+{
+    auto handleId = pimpl->subscribe("psubscribe", pattern, msgHandler, handler);
+    return{ handleId , pattern };
+}
+
+void RedisAsyncClient::unsubscribe(const Handle &handle)
+{
+    pimpl->unsubscribe("unsubscribe", handle.id, handle.channel, dummyHandler);
+}
+
+void RedisAsyncClient::punsubscribe(const Handle &handle)
+{
+    pimpl->unsubscribe("punsubscribe", handle.id, handle.channel, dummyHandler);
+}
+
+void RedisAsyncClient::singleShotSubscribe(const std::string &channel,
+                                           std::function<void(std::vector<char> msg)> msgHandler,
+                                           std::function<void(RedisValue)> handler)
+{
+    pimpl->singleShotSubscribe("subscribe", channel, msgHandler, handler);
+}
+
+void RedisAsyncClient::singleShotPSubscribe(const std::string &pattern,
+    std::function<void(std::vector<char> msg)> msgHandler,
+    std::function<void(RedisValue)> handler)
+{
+    pimpl->singleShotSubscribe("psubscribe", pattern, msgHandler, handler);
+}
+
+void RedisAsyncClient::publish(const std::string &channel, const RedisBuffer &msg,
+                          std::function<void(RedisValue)> handler)
+{
+    assert( pimpl->state == State::Connected );
+
+    static const std::string publishStr = "PUBLISH";
+
+    if( pimpl->state == State::Connected )
+    {
+        std::deque<RedisBuffer> items(3);
+
+        items[0] = publishStr;
+        items[1] = channel;
+        items[2] = msg;
+
+        pimpl->post(std::bind(&RedisClientImpl::doAsyncCommand, pimpl,
+                    pimpl->makeCommand(items), std::move(handler)));
+    }
+    else
+    {
+        std::stringstream ss;
+
+        ss << "RedisAsyncClient::command called with invalid state "
+           << to_string(pimpl->state);
+
+        pimpl->errorHandler(ss.str());
+    }
+}
+
+RedisAsyncClient::State RedisAsyncClient::state() const
+{
+    return pimpl->getState();
+}
+
+bool RedisAsyncClient::stateValid() const
+{
+    assert( pimpl->state == State::Connected );
+
+    if( pimpl->state != State::Connected )
+    {
+        std::stringstream ss;
+
+        ss << "RedisAsyncClient::command called with invalid state "
+           << to_string(pimpl->state);
+
+        pimpl->errorHandler(ss.str());
+        return false;
+    }
+
+    return true;
+}
+
+}
+
+#endif // REDISASYNCCLIENT_REDISASYNCCLIENT_CPP
 /*
  * Copyright (C) Alex Nekipelov (alex@nekipelov.net)
  * License: MIT
@@ -57,16 +234,18 @@ void RedisClientImpl::doProcessMessage(RedisValue v)
     if( state == State::Subscribed )
     {
         std::vector<RedisValue> result = v.toArray();
+        auto resultSize = result.size();
 
-        if( result.size() == 3 )
+        if( resultSize >= 3 )
         {
-            const RedisValue &command = result[0];
-            const RedisValue &queueName = result[1];
-            const RedisValue &value = result[2];
+            const RedisValue &command   = result[0];
+            const RedisValue &queueName = result[(resultSize == 3)?1:2];
+            const RedisValue &value     = result[(resultSize == 3)?2:3];
+            const RedisValue &pattern   = (resultSize == 4) ? result[1] : "";
 
             std::string cmd = command.toString();
 
-            if( cmd == "message" )
+            if( cmd == "message" || cmd == "pmessage" )
             {
                 SingleShotHandlersMap::iterator it = singleShotMsgHandlers.find(queueName.toString());
                 if( it != singleShotMsgHandlers.end() )
@@ -83,12 +262,10 @@ void RedisClientImpl::doProcessMessage(RedisValue v)
                     strand.post(std::bind(handlerIt->second.second, value.toByteArray()));
                 }
             }
-            else if( cmd == "subscribe" && handlers.empty() == false )
-            {
-                handlers.front()(std::move(v));
-                handlers.pop();
-            }
-            else if(cmd == "unsubscribe" && handlers.empty() == false )
+            else if( handlers.empty() == false &&
+                    (cmd == "subscribe" || cmd == "unsubscribe" ||
+                    cmd == "psubscribe" || cmd == "punsubscribe")
+                   )
             {
                 handlers.front()(std::move(v));
                 handlers.pop();
@@ -104,6 +281,7 @@ void RedisClientImpl::doProcessMessage(RedisValue v)
                 return;
             }
         }
+
         else
         {
             errorHandler("[RedisClient] Protocol error");
@@ -320,149 +498,91 @@ void RedisClientImpl::append(std::vector<char> &vec, char c)
     vec[vec.size() - 1] = c;
 }
 
-}
-
-#endif // REDISCLIENT_REDISCLIENTIMPL_CPP
-/*
- * Copyright (C) Alex Nekipelov (alex@nekipelov.net)
- * License: MIT
- */
-
-#ifndef REDISASYNCCLIENT_REDISASYNCCLIENT_CPP
-#define REDISASYNCCLIENT_REDISASYNCCLIENT_CPP
-
-#include <memory>
-#include <functional>
-
-
-
-namespace redisclient {
-
-RedisAsyncClient::RedisAsyncClient(boost::asio::io_service &ioService)
-    : pimpl(std::make_shared<RedisClientImpl>(ioService))
+size_t RedisClientImpl::subscribe(
+    const std::string &command,
+    const std::string &channel,
+    std::function<void(std::vector<char> msg)> msgHandler,
+    std::function<void(RedisValue)> handler)
 {
-    pimpl->errorHandler = std::bind(&RedisClientImpl::defaulErrorHandler, std::placeholders::_1);
-}
+    assert(state == State::Connected ||
+           state == State::Subscribed);
 
-RedisAsyncClient::~RedisAsyncClient()
-{
-    pimpl->close();
-}
-
-void RedisAsyncClient::connect(const boost::asio::ip::address &address,
-                               unsigned short port,
-                               std::function<void(bool, const std::string &)> handler)
-{
-    boost::asio::ip::tcp::endpoint endpoint(address, port);
-    connect(endpoint, std::move(handler));
-}
-
-void RedisAsyncClient::connect(const boost::asio::ip::tcp::endpoint &endpoint,
-                               std::function<void(bool, const std::string &)> handler)
-{
-    if( pimpl->state == State::Unconnected || pimpl->state == State::Closed )
+    if (state == State::Connected || state == State::Subscribed)
     {
-        pimpl->state = State::Connecting;
-        pimpl->socket.async_connect(endpoint, std::bind(&RedisClientImpl::handleAsyncConnect,
-                    pimpl, std::placeholders::_1, std::move(handler)));
+        std::deque<RedisBuffer> items{ command, channel };
+
+        post(std::bind(&RedisClientImpl::doAsyncCommand, this, makeCommand(items), std::move(handler)));
+        msgHandlers.insert(std::make_pair(channel, std::make_pair(subscribeSeq, std::move(msgHandler))));
+        state = State::Subscribed;
+
+        return subscribeSeq++;
     }
     else
     {
         std::stringstream ss;
 
-        ss << "RedisAsyncClient::connect called on socket with state " << to_string(pimpl->state);
-        handler(false, ss.str());
+        ss << "RedisClientImpl::subscribe called with invalid state "
+            << to_string(state);
+
+        errorHandler(ss.str());
+        return 0;
     }
 }
 
-bool RedisAsyncClient::isConnected() const
+void RedisClientImpl::singleShotSubscribe(
+    const std::string &command,
+    const std::string &channel,
+    std::function<void(std::vector<char> msg)> msgHandler,
+    std::function<void(RedisValue)> handler)
 {
-    return pimpl->getState() == State::Connected ||
-            pimpl->getState() == State::Subscribed;
-}
+    assert(state == State::Connected ||
+           state == State::Subscribed);
 
-void RedisAsyncClient::disconnect()
-{
-    pimpl->close();
-}
-
-void RedisAsyncClient::installErrorHandler(std::function<void(const std::string &)> handler)
-{
-    pimpl->errorHandler = std::move(handler);
-}
-
-void RedisAsyncClient::command(const std::string &cmd, std::deque<RedisBuffer> args,
-                          std::function<void(RedisValue)> handler)
-{
-    if(stateValid())
+    if (state == State::Connected ||
+        state == State::Subscribed)
     {
-        args.emplace_front(cmd);
+        std::deque<RedisBuffer> items{ command, channel };
 
-        pimpl->post(std::bind(&RedisClientImpl::doAsyncCommand, pimpl,
-                    std::move(pimpl->makeCommand(args)), std::move(handler)));
-    }
-}
-
-RedisAsyncClient::Handle RedisAsyncClient::subscribe(
-        const std::string &channel,
-        std::function<void(std::vector<char> msg)> msgHandler,
-        std::function<void(RedisValue)> handler)
-{
-    assert( pimpl->state == State::Connected ||
-            pimpl->state == State::Subscribed);
-
-    static const std::string subscribeStr = "SUBSCRIBE";
-
-    if( pimpl->state == State::Connected || pimpl->state == State::Subscribed )
-    {
-        Handle handle = {pimpl->subscribeSeq++, channel};
-
-        std::deque<RedisBuffer> items {subscribeStr, channel};
-
-        pimpl->post(std::bind(&RedisClientImpl::doAsyncCommand, pimpl,
-                    pimpl->makeCommand(items),  std::move(handler)));
-        pimpl->msgHandlers.insert(std::make_pair(channel, std::make_pair(handle.id,
-                        std::move(msgHandler))));
-        pimpl->state = State::Subscribed;
-
-        return handle;
+        post(std::bind(&RedisClientImpl::doAsyncCommand, this, makeCommand(items), std::move(handler)));
+        singleShotMsgHandlers.insert(std::make_pair(channel, std::move(msgHandler)));
+        state = State::Subscribed;
     }
     else
     {
         std::stringstream ss;
 
-        ss << "RedisAsyncClient::command called with invalid state "
-           << to_string(pimpl->state);
+        ss << "RedisClientImpl::singleShotSubscribe called with invalid state "
+            << to_string(state);
 
-        pimpl->errorHandler(ss.str());
-        return Handle();
+        errorHandler(ss.str());
     }
 }
 
-void RedisAsyncClient::unsubscribe(const Handle &handle)
+void RedisClientImpl::unsubscribe(const std::string &command, 
+                                  size_t handleId, 
+                                  const std::string &channel,
+                                  std::function<void(RedisValue)> handler)
 {
 #ifdef DEBUG
     static int recursion = 0;
-    assert( recursion++ == 0 );
+    assert(recursion++ == 0);
 #endif
 
-    assert( pimpl->state == State::Connected ||
-            pimpl->state == State::Subscribed);
+    assert(state == State::Connected ||
+           state == State::Subscribed);
 
-    static const std::string unsubscribeStr = "UNSUBSCRIBE";
-
-    if( pimpl->state == State::Connected ||
-            pimpl->state == State::Subscribed )
+    if (state == State::Connected ||
+        state == State::Subscribed)
     {
         // Remove subscribe-handler
         typedef RedisClientImpl::MsgHandlersMap::iterator iterator;
-        std::pair<iterator, iterator> pair = pimpl->msgHandlers.equal_range(handle.channel);
+        std::pair<iterator, iterator> pair = msgHandlers.equal_range(channel);
 
-        for(iterator it = pair.first; it != pair.second;)
+        for (iterator it = pair.first; it != pair.second;)
         {
-            if( it->second.first == handle.id )
+            if (it->second.first == handleId)
             {
-                pimpl->msgHandlers.erase(it++);
+                msgHandlers.erase(it++);
             }
             else
             {
@@ -470,23 +590,23 @@ void RedisAsyncClient::unsubscribe(const Handle &handle)
             }
         }
 
-        std::deque<RedisBuffer> items {unsubscribeStr, handle.channel};
+        std::deque<RedisBuffer> items{ command, channel };
 
         // Unsubscribe command for Redis
-        pimpl->post(std::bind(&RedisClientImpl::doAsyncCommand, pimpl,
-                    pimpl->makeCommand(items), dummyHandler));
+        post(std::bind(&RedisClientImpl::doAsyncCommand, this,
+             makeCommand(items), handler));
     }
     else
     {
         std::stringstream ss;
 
-        ss << "RedisAsyncClient::command called with invalid state "
-           << to_string(pimpl->state);
+        ss << "RedisClientImpl::unsubscribe called with invalid state "
+            << to_string(state);
 
 #ifdef DEBUG
         --recursion;
 #endif
-        pimpl->errorHandler(ss.str());
+        errorHandler(ss.str());
         return;
     }
 
@@ -495,376 +615,9 @@ void RedisAsyncClient::unsubscribe(const Handle &handle)
 #endif
 }
 
-void RedisAsyncClient::singleShotSubscribe(const std::string &channel,
-                                      std::function<void(std::vector<char> msg)> msgHandler,
-                                      std::function<void(RedisValue)> handler)
-{
-    assert( pimpl->state == State::Connected ||
-            pimpl->state == State::Subscribed);
-
-    static const std::string subscribeStr = "SUBSCRIBE";
-
-    if( pimpl->state == State::Connected ||
-            pimpl->state == State::Subscribed )
-    {
-        std::deque<RedisBuffer> items {subscribeStr, channel};
-
-        pimpl->post(std::bind(&RedisClientImpl::doAsyncCommand, pimpl,
-                    pimpl->makeCommand(items), std::move(handler)));
-        pimpl->singleShotMsgHandlers.insert(std::make_pair(channel, std::move(msgHandler)));
-        pimpl->state = State::Subscribed;
-    }
-    else
-    {
-        std::stringstream ss;
-
-        ss << "RedisAsyncClient::command called with invalid state "
-           << to_string(pimpl->state);
-
-        pimpl->errorHandler(ss.str());
-    }
 }
 
-
-void RedisAsyncClient::publish(const std::string &channel, const RedisBuffer &msg,
-                          std::function<void(RedisValue)> handler)
-{
-    assert( pimpl->state == State::Connected );
-
-    static const std::string publishStr = "PUBLISH";
-
-    if( pimpl->state == State::Connected )
-    {
-        std::deque<RedisBuffer> items(3);
-
-        items[0] = publishStr;
-        items[1] = channel;
-        items[2] = msg;
-
-        pimpl->post(std::bind(&RedisClientImpl::doAsyncCommand, pimpl,
-                    pimpl->makeCommand(items), std::move(handler)));
-    }
-    else
-    {
-        std::stringstream ss;
-
-        ss << "RedisAsyncClient::command called with invalid state "
-           << to_string(pimpl->state);
-
-        pimpl->errorHandler(ss.str());
-    }
-}
-
-RedisAsyncClient::State RedisAsyncClient::state() const
-{
-    return pimpl->getState();
-}
-
-bool RedisAsyncClient::stateValid() const
-{
-    assert( pimpl->state == State::Connected );
-
-    if( pimpl->state != State::Connected )
-    {
-        std::stringstream ss;
-
-        ss << "RedisAsyncClient::command called with invalid state "
-           << to_string(pimpl->state);
-
-        pimpl->errorHandler(ss.str());
-        return false;
-    }
-
-    return true;
-}
-
-}
-
-#endif // REDISASYNCCLIENT_REDISASYNCCLIENT_CPP
-/*
- * Copyright (C) Alex Nekipelov (alex@nekipelov.net)
- * License: MIT
- */
-
-#ifndef REDISCLIENT_REDISVALUE_CPP
-#define REDISCLIENT_REDISVALUE_CPP
-
-#include <string.h>
-
-
-
-namespace redisclient {
-
-RedisValue::RedisValue()
-    : value(NullTag()), error(false)
-{
-}
-
-RedisValue::RedisValue(RedisValue &&other)
-    : value(std::move(other.value)), error(other.error)
-{
-}
-
-RedisValue::RedisValue(int64_t i)
-    : value(i), error(false)
-{
-}
-
-RedisValue::RedisValue(const char *s)
-    : value( std::vector<char>(s, s + strlen(s)) ), error(false)
-{
-}
-
-RedisValue::RedisValue(const std::string &s)
-    : value( std::vector<char>(s.begin(), s.end()) ), error(false)
-{
-}
-
-RedisValue::RedisValue(std::vector<char> buf)
-    : value(std::move(buf)), error(false)
-{
-}
-
-RedisValue::RedisValue(std::vector<char> buf, struct ErrorTag)
-    : value(std::move(buf)), error(true)
-{
-}
-
-RedisValue::RedisValue(std::vector<RedisValue> array)
-    : value(std::move(array)), error(false)
-{
-}
-
-std::vector<RedisValue> RedisValue::toArray() const
-{
-    return castTo< std::vector<RedisValue> >();
-}
-
-std::string RedisValue::toString() const
-{
-    const std::vector<char> &buf = toByteArray();
-    return std::string(buf.begin(), buf.end());
-}
-
-std::vector<char> RedisValue::toByteArray() const
-{
-    return castTo<std::vector<char> >();
-}
-
-int64_t RedisValue::toInt() const
-{
-    return castTo<int64_t>();
-}
-
-std::string RedisValue::inspect() const
-{
-    if( isError() )
-    {
-        static std::string err = "error: ";
-        std::string result;
-
-        result = err;
-        result += toString();
-
-        return result;
-    }
-    else if( isNull() )
-    {
-        static std::string null = "(null)";
-        return null;
-    }
-    else if( isInt() )
-    {
-        return std::to_string(toInt());
-    }
-    else if( isString() )
-    {
-        return toString();
-    }
-    else
-    {
-        std::vector<RedisValue> values = toArray();
-        std::string result = "[";
-
-        if( values.empty() == false )
-        {
-            for(size_t i = 0; i < values.size(); ++i)
-            {
-                result += values[i].inspect();
-                result += ", ";
-            }
-
-            result.resize(result.size() - 1);
-            result[result.size() - 1] = ']';
-        }
-        else
-        {
-            result += ']';
-        }
-
-        return result;
-    }
-}
-
-bool RedisValue::isOk() const
-{
-    return !isError();
-}
-
-bool RedisValue::isError() const
-{
-    return error;
-}
-
-bool RedisValue::isNull() const
-{
-    return typeEq<NullTag>();
-}
-
-bool RedisValue::isInt() const
-{
-    return typeEq<int64_t>();
-}
-
-bool RedisValue::isString() const
-{
-    return typeEq<std::vector<char> >();
-}
-
-bool RedisValue::isByteArray() const
-{
-    return typeEq<std::vector<char> >();
-}
-
-bool RedisValue::isArray() const
-{
-    return typeEq< std::vector<RedisValue> >();
-}
-
-bool RedisValue::operator == (const RedisValue &rhs) const
-{
-    return value == rhs.value;
-}
-
-bool RedisValue::operator != (const RedisValue &rhs) const
-{
-    return !(value == rhs.value);
-}
-
-}
-
-#endif // REDISCLIENT_REDISVALUE_CPP
-
-/*
- * Copyright (C) Alex Nekipelov (alex@nekipelov.net)
- * License: MIT
- */
-
-#ifndef REDISCLIENT_REDISSYNCCLIENT_CPP
-#define REDISCLIENT_REDISSYNCCLIENT_CPP
-
-#include <memory>
-#include <functional>
-
-
-
-namespace redisclient {
-
-RedisSyncClient::RedisSyncClient(boost::asio::io_service &ioService)
-    : pimpl(std::make_shared<RedisClientImpl>(ioService))
-{
-    pimpl->errorHandler = std::bind(&RedisClientImpl::defaulErrorHandler, std::placeholders::_1);
-}
-
-RedisSyncClient::~RedisSyncClient()
-{
-    pimpl->close();
-}
-
-bool RedisSyncClient::connect(const boost::asio::ip::tcp::endpoint &endpoint,
-        std::string &errmsg)
-{
-    boost::system::error_code ec;
-
-    pimpl->socket.open(endpoint.protocol(), ec);
-
-    if( !ec )
-    {
-        pimpl->socket.set_option(boost::asio::ip::tcp::no_delay(true), ec);
-
-        if( !ec )
-        {
-            pimpl->socket.connect(endpoint, ec);
-        }
-    }
-
-    if( !ec )
-    {
-        pimpl->state = State::Connected;
-        return true;
-    }
-    else
-    {
-        errmsg = ec.message();
-        return false;
-    }
-}
-
-bool RedisSyncClient::connect(const boost::asio::ip::address &address,
-        unsigned short port,
-        std::string &errmsg)
-{
-    boost::asio::ip::tcp::endpoint endpoint(address, port);
-
-    return connect(endpoint, errmsg);
-}
-
-void RedisSyncClient::installErrorHandler(
-        std::function<void(const std::string &)> handler)
-{
-    pimpl->errorHandler = std::move(handler);
-}
-
-RedisValue RedisSyncClient::command(const std::string &cmd, std::deque<RedisBuffer> args)
-{
-    if(stateValid())
-    {
-        args.emplace_front(cmd);
-
-        return pimpl->doSyncCommand(args);
-    }
-    else
-    {
-        return RedisValue();
-    }
-}
-
-RedisSyncClient::State RedisSyncClient::state() const
-{
-    return pimpl->getState();
-}
-
-bool RedisSyncClient::stateValid() const
-{
-    assert( state() == State::Connected );
-
-    if( state() != State::Connected )
-    {
-        std::stringstream ss;
-
-        ss << "RedisClient::command called with invalid state "
-           << to_string(state());
-
-        pimpl->errorHandler(ss.str());
-        return false;
-    }
-
-    return true;
-}
-
-}
-
-#endif // REDISCLIENT_REDISSYNCCLIENT_CPP
+#endif // REDISCLIENT_REDISCLIENTIMPL_CPP
 /*
  * Copyright (C) Alex Nekipelov (alex@nekipelov.net)
  * License: MIT
@@ -1371,3 +1124,287 @@ long int RedisParser::bufToLong(const char *str, size_t size)
 }
 
 #endif // REDISCLIENT_REDISPARSER_CPP
+/*
+ * Copyright (C) Alex Nekipelov (alex@nekipelov.net)
+ * License: MIT
+ */
+
+#ifndef REDISCLIENT_REDISSYNCCLIENT_CPP
+#define REDISCLIENT_REDISSYNCCLIENT_CPP
+
+#include <memory>
+#include <functional>
+
+
+
+namespace redisclient {
+
+RedisSyncClient::RedisSyncClient(boost::asio::io_service &ioService)
+    : pimpl(std::make_shared<RedisClientImpl>(ioService))
+{
+    pimpl->errorHandler = std::bind(&RedisClientImpl::defaulErrorHandler, std::placeholders::_1);
+}
+
+RedisSyncClient::~RedisSyncClient()
+{
+    pimpl->close();
+}
+
+bool RedisSyncClient::connect(const boost::asio::ip::tcp::endpoint &endpoint,
+        std::string &errmsg)
+{
+    boost::system::error_code ec;
+
+    pimpl->socket.open(endpoint.protocol(), ec);
+
+    if( !ec )
+    {
+        pimpl->socket.set_option(boost::asio::ip::tcp::no_delay(true), ec);
+
+        if( !ec )
+        {
+            pimpl->socket.connect(endpoint, ec);
+        }
+    }
+
+    if( !ec )
+    {
+        pimpl->state = State::Connected;
+        return true;
+    }
+    else
+    {
+        errmsg = ec.message();
+        return false;
+    }
+}
+
+bool RedisSyncClient::connect(const boost::asio::ip::address &address,
+        unsigned short port,
+        std::string &errmsg)
+{
+    boost::asio::ip::tcp::endpoint endpoint(address, port);
+
+    return connect(endpoint, errmsg);
+}
+
+void RedisSyncClient::installErrorHandler(
+        std::function<void(const std::string &)> handler)
+{
+    pimpl->errorHandler = std::move(handler);
+}
+
+RedisValue RedisSyncClient::command(const std::string &cmd, std::deque<RedisBuffer> args)
+{
+    if(stateValid())
+    {
+        args.emplace_front(cmd);
+
+        return pimpl->doSyncCommand(args);
+    }
+    else
+    {
+        return RedisValue();
+    }
+}
+
+RedisSyncClient::State RedisSyncClient::state() const
+{
+    return pimpl->getState();
+}
+
+bool RedisSyncClient::stateValid() const
+{
+    assert( state() == State::Connected );
+
+    if( state() != State::Connected )
+    {
+        std::stringstream ss;
+
+        ss << "RedisClient::command called with invalid state "
+           << to_string(state());
+
+        pimpl->errorHandler(ss.str());
+        return false;
+    }
+
+    return true;
+}
+
+}
+
+#endif // REDISCLIENT_REDISSYNCCLIENT_CPP
+/*
+ * Copyright (C) Alex Nekipelov (alex@nekipelov.net)
+ * License: MIT
+ */
+
+#ifndef REDISCLIENT_REDISVALUE_CPP
+#define REDISCLIENT_REDISVALUE_CPP
+
+#include <string.h>
+
+
+
+namespace redisclient {
+
+RedisValue::RedisValue()
+    : value(NullTag()), error(false)
+{
+}
+
+RedisValue::RedisValue(RedisValue &&other)
+    : value(std::move(other.value)), error(other.error)
+{
+}
+
+RedisValue::RedisValue(int64_t i)
+    : value(i), error(false)
+{
+}
+
+RedisValue::RedisValue(const char *s)
+    : value( std::vector<char>(s, s + strlen(s)) ), error(false)
+{
+}
+
+RedisValue::RedisValue(const std::string &s)
+    : value( std::vector<char>(s.begin(), s.end()) ), error(false)
+{
+}
+
+RedisValue::RedisValue(std::vector<char> buf)
+    : value(std::move(buf)), error(false)
+{
+}
+
+RedisValue::RedisValue(std::vector<char> buf, struct ErrorTag)
+    : value(std::move(buf)), error(true)
+{
+}
+
+RedisValue::RedisValue(std::vector<RedisValue> array)
+    : value(std::move(array)), error(false)
+{
+}
+
+std::vector<RedisValue> RedisValue::toArray() const
+{
+    return castTo< std::vector<RedisValue> >();
+}
+
+std::string RedisValue::toString() const
+{
+    const std::vector<char> &buf = toByteArray();
+    return std::string(buf.begin(), buf.end());
+}
+
+std::vector<char> RedisValue::toByteArray() const
+{
+    return castTo<std::vector<char> >();
+}
+
+int64_t RedisValue::toInt() const
+{
+    return castTo<int64_t>();
+}
+
+std::string RedisValue::inspect() const
+{
+    if( isError() )
+    {
+        static std::string err = "error: ";
+        std::string result;
+
+        result = err;
+        result += toString();
+
+        return result;
+    }
+    else if( isNull() )
+    {
+        static std::string null = "(null)";
+        return null;
+    }
+    else if( isInt() )
+    {
+        return std::to_string(toInt());
+    }
+    else if( isString() )
+    {
+        return toString();
+    }
+    else
+    {
+        std::vector<RedisValue> values = toArray();
+        std::string result = "[";
+
+        if( values.empty() == false )
+        {
+            for(size_t i = 0; i < values.size(); ++i)
+            {
+                result += values[i].inspect();
+                result += ", ";
+            }
+
+            result.resize(result.size() - 1);
+            result[result.size() - 1] = ']';
+        }
+        else
+        {
+            result += ']';
+        }
+
+        return result;
+    }
+}
+
+bool RedisValue::isOk() const
+{
+    return !isError();
+}
+
+bool RedisValue::isError() const
+{
+    return error;
+}
+
+bool RedisValue::isNull() const
+{
+    return typeEq<NullTag>();
+}
+
+bool RedisValue::isInt() const
+{
+    return typeEq<int64_t>();
+}
+
+bool RedisValue::isString() const
+{
+    return typeEq<std::vector<char> >();
+}
+
+bool RedisValue::isByteArray() const
+{
+    return typeEq<std::vector<char> >();
+}
+
+bool RedisValue::isArray() const
+{
+    return typeEq< std::vector<RedisValue> >();
+}
+
+bool RedisValue::operator == (const RedisValue &rhs) const
+{
+    return value == rhs.value;
+}
+
+bool RedisValue::operator != (const RedisValue &rhs) const
+{
+    return !(value == rhs.value);
+}
+
+}
+
+#endif // REDISCLIENT_REDISVALUE_CPP
+
