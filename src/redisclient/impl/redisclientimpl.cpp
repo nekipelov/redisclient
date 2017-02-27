@@ -260,7 +260,10 @@ void RedisClientImpl::asyncRead(const boost::system::error_code &ec, const size_
 {
     if( ec || size == 0 )
     {
-        errorHandler(ec.message());
+        if( state != State::Closed )
+        {
+            errorHandler(ec.message());
+        }
         return;
     }
 
