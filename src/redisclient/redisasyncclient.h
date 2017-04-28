@@ -47,6 +47,12 @@ public:
             const boost::asio::ip::tcp::endpoint &endpoint,
             std::function<void(bool, const std::string &)> handler);
 
+#ifdef BOOST_ASIO_HAS_LOCAL_SOCKETS
+    REDIS_CLIENT_DECL void connect(
+            const boost::asio::local::stream_protocol::endpoint &endpoint,
+            std::function<void(bool, const std::string &)> handler);
+#endif
+
     // backward compatibility
     inline void asyncConnect(
             const boost::asio::ip::address &address,

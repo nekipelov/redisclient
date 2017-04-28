@@ -51,6 +51,28 @@ void RedisAsyncClient::connect(const boost::asio::ip::tcp::endpoint &endpoint,
     }
 }
 
+#ifdef BOOST_ASIO_HAS_LOCAL_SOCKETS
+
+void RedisAsyncClient::connect(const boost::asio::local::stream_protocol::endpoint &endpoint,
+                               std::function<void(bool, const std::string &)> handler)
+{
+    if( pimpl->state == State::Unconnected || pimpl->state == State::Closed )
+    {
+        pimpl->state = State::Connecting;
+        pimpl->socket.async_connect(endpoint, std::bind(&RedisClientImpl::handleAsyncConnect,
+                    pimpl, std::placeholders::_1, std::move(handler)));
+    }
+    else
+    {
+        std::stringstream ss;
+
+        ss << "RedisAsyncClient::connect called on socket with state " << to_string(pimpl->state);
+        handler(false, ss.str());
+    }
+}
+
+#endif
+
 bool RedisAsyncClient::isConnected() const
 {
     return pimpl->getState() == State::Connected ||
@@ -1190,6 +1212,39 @@ bool RedisSyncClient::connect(const boost::asio::ip::address &address,
 
     return connect(endpoint, errmsg);
 }
+
+#ifdef BOOST_ASIO_HAS_LOCAL_SOCKETS
+
+bool RedisSyncClient::connect(const boost::asio::local::stream_protocol::endpoint &endpoint,
+        std::string &errmsg)
+{
+    boost::system::error_code ec;
+
+    pimpl->socket.open(endpoint.protocol(), ec);
+
+    if( !ec )
+    {
+        pimpl->socket.set_option(boost::asio::ip::tcp::no_delay(true), ec);
+
+        if( !ec )
+        {
+            pimpl->socket.connect(endpoint, ec);
+        }
+    }
+
+    if( !ec )
+    {
+        pimpl->state = State::Connected;
+        return true;
+    }
+    else
+    {
+        errmsg = ec.message();
+        return false;
+    }
+}
+
+#endif
 
 void RedisSyncClient::installErrorHandler(
         std::function<void(const std::string &)> handler)

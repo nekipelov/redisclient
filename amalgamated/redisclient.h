@@ -307,7 +307,9 @@ private:
 
 #include <boost/array.hpp>
 #include <boost/noncopyable.hpp>
+#include <boost/asio/generic/stream_protocol.hpp>
 #include <boost/asio/ip/tcp.hpp>
+#include <boost/asio/local/stream_protocol.hpp>
 #include <boost/asio/strand.hpp>
 
 #include <string>
@@ -386,7 +388,7 @@ public:
     inline void post(const Handler &handler);
 
     boost::asio::strand strand;
-    boost::asio::ip::tcp::socket socket;
+    boost::asio::generic::stream_protocol::socket socket;
     RedisParser redisParser;
     boost::array<char, 4096> buf;
     size_t subscribeSeq;
@@ -498,6 +500,12 @@ public:
      void connect(
             const boost::asio::ip::tcp::endpoint &endpoint,
             std::function<void(bool, const std::string &)> handler);
+
+
+     void connect(
+            const boost::asio::local::stream_protocol::endpoint &endpoint,
+            std::function<void(bool, const std::string &)> handler);
+
 
     // backward compatibility
     inline void asyncConnect(
@@ -626,6 +634,12 @@ public:
             const boost::asio::ip::address &address,
             unsigned short port,
             std::string &errmsg);
+
+
+     bool connect(
+            const boost::asio::local::stream_protocol::endpoint &endpoint,
+            std::string &errmsg);
+
 
     // Set custom error handler.
      void installErrorHandler(
