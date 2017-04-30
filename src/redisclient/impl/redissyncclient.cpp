@@ -62,6 +62,39 @@ bool RedisSyncClient::connect(const boost::asio::ip::address &address,
     return connect(endpoint, errmsg);
 }
 
+#ifdef BOOST_ASIO_HAS_LOCAL_SOCKETS
+
+bool RedisSyncClient::connect(const boost::asio::local::stream_protocol::endpoint &endpoint,
+        std::string &errmsg)
+{
+    boost::system::error_code ec;
+
+    pimpl->socket.open(endpoint.protocol(), ec);
+
+    if( !ec )
+    {
+        pimpl->socket.set_option(boost::asio::ip::tcp::no_delay(true), ec);
+
+        if( !ec )
+        {
+            pimpl->socket.connect(endpoint, ec);
+        }
+    }
+
+    if( !ec )
+    {
+        pimpl->state = State::Connected;
+        return true;
+    }
+    else
+    {
+        errmsg = ec.message();
+        return false;
+    }
+}
+
+#endif
+
 void RedisSyncClient::installErrorHandler(
         std::function<void(const std::string &)> handler)
 {

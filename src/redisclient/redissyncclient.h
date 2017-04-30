@@ -40,6 +40,12 @@ public:
             unsigned short port,
             std::string &errmsg);
 
+#ifdef BOOST_ASIO_HAS_LOCAL_SOCKETS
+    REDIS_CLIENT_DECL bool connect(
+            const boost::asio::local::stream_protocol::endpoint &endpoint,
+            std::string &errmsg);
+#endif
+
     // Set custom error handler.
     REDIS_CLIENT_DECL void installErrorHandler(
         std::function<void(const std::string &)> handler);
