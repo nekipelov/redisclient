@@ -73,12 +73,7 @@ bool RedisSyncClient::connect(const boost::asio::local::stream_protocol::endpoin
 
     if( !ec )
     {
-        pimpl->socket.set_option(boost::asio::ip::tcp::no_delay(true), ec);
-
-        if( !ec )
-        {
-            pimpl->socket.connect(endpoint, ec);
-        }
+        pimpl->socket.connect(endpoint, ec);
     }
 
     if( !ec )

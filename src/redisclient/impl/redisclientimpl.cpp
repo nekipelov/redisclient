@@ -162,7 +162,8 @@ void RedisClientImpl::handleAsyncConnect(const boost::system::error_code &ec,
 {
     if( !ec )
     {
-        socket.set_option(boost::asio::ip::tcp::no_delay(true));
+        boost::system::error_code ec2; // Ignore errors in set_option
+        socket.set_option(boost::asio::ip::tcp::no_delay(true), ec2);
         state = State::Connected;
         handler(true, std::string());
         processMessage();
