@@ -7,68 +7,55 @@
 #ifndef REDISSYNCCLIENT_REDISBUFFER_H
 #define REDISSYNCCLIENT_REDISBUFFER_H
 
-#include <boost/noncopyable.hpp>
+#include <boost/variant.hpp>
 
 #include <string>
-#include <list>
 #include <vector>
-#include <string.h>
 
 #include "config.h"
 
 namespace redisclient {
 
-class RedisBuffer
+struct RedisBuffer
 {
-public:
-    inline RedisBuffer();
+    RedisBuffer() = default;
     inline RedisBuffer(const char *ptr, size_t dataSize);
     inline RedisBuffer(const char *s);
-    inline RedisBuffer(const std::string &s);
-    inline RedisBuffer(const std::vector<char> &buf);
+    inline RedisBuffer(std::string s);
+    inline RedisBuffer(std::vector<char> buf);
 
     inline size_t size() const;
-    inline const char *data() const;
 
-private:
-    const char *ptr_;
-    size_t size_;
+    boost::variant<std::string,std::vector<char>> data;
 };
 
 
-RedisBuffer::RedisBuffer()
-    : ptr_(NULL), size_(0)
-{
-}
-
 RedisBuffer::RedisBuffer(const char *ptr, size_t dataSize)
-    : ptr_(ptr), size_(dataSize)
+    : data(std::vector<char>(ptr, ptr + dataSize))
 {
 }
 
 RedisBuffer::RedisBuffer(const char *s)
-    : ptr_(s), size_(s == NULL ? 0 : strlen(s))
+    : data(std::string(s))
 {
 }
 
-RedisBuffer::RedisBuffer(const std::string &s)
-    : ptr_(s.c_str()), size_(s.length())
+RedisBuffer::RedisBuffer(std::string s)
+    : data(std::move(s))
 {
 }
 
-RedisBuffer::RedisBuffer(const std::vector<char> &buf)
-    : ptr_(buf.empty() ? NULL : &buf[0]), size_(buf.size())
+RedisBuffer::RedisBuffer(std::vector<char> buf)
+    : data(std::move(buf))
 {
 }
 
 size_t RedisBuffer::size() const
 {
-    return size_;
-}
-
-const char *RedisBuffer::data() const
-{
-    return ptr_;
+    if (data.type() == typeid(std::string))
+        return boost::get<std::string>(data).size();
+    else
+        return boost::get<std::vector<char>>(data).size();
 }
 
 }
