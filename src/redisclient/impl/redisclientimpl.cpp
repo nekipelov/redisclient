@@ -12,6 +12,45 @@
 
 #include "redisclientimpl.h"
 
+namespace
+{
+    static const char crlf[] = {'\r', '\n'};
+    inline void bufferAppend(std::vector<char> &vec, const std::string &s);
+    inline void bufferAppend(std::vector<char> &vec, const char *s);
+    inline void bufferAppend(std::vector<char> &vec, char c);
+    template<size_t size>
+    inline void bufferAppend(std::vector<char> &vec, const char (&s)[size]);
+
+    inline void bufferAppend(std::vector<char> &vec, const redisclient::RedisBuffer &buf)
+    {
+        if (buf.data.type() == typeid(std::string))
+            bufferAppend(vec, boost::get<std::string>(buf.data));
+        else
+            bufferAppend(vec, boost::get<std::vector<char>>(buf.data));
+    }
+    inline void bufferAppend(std::vector<char> &vec, const std::string &s)
+    {
+        vec.insert(vec.end(), s.begin(), s.end());
+    }
+
+    inline void bufferAppend(std::vector<char> &vec, const char *s)
+    {
+        vec.insert(vec.end(), s, s + strlen(s));
+    }
+
+    inline void bufferAppend(std::vector<char> &vec, char c)
+    {
+        vec.resize(vec.size() + 1);
+        vec[vec.size() - 1] = c;
+    }
+
+    template<size_t size>
+    inline void bufferAppend(std::vector<char> &vec, const char (&s)[size])
+    {
+        vec.insert(vec.end(), s, s + size);
+    }
+}
+
 namespace redisclient {
 
 RedisClientImpl::RedisClientImpl(boost::asio::io_service &ioService)
@@ -177,21 +216,21 @@ void RedisClientImpl::handleAsyncConnect(const boost::system::error_code &ec,
 
 std::vector<char> RedisClientImpl::makeCommand(const std::deque<RedisBuffer> &items)
 {
-    static const char crlf[] = {'\r', '\n'};
-
     std::vector<char> result;
 
-    append(result, '*');
-    append(result, std::to_string(items.size()));
-    append<>(result, crlf);
+    bufferAppend(result, '*');
+    bufferAppend(result, std::to_string(items.size()));
+    bufferAppend<>(result, crlf);
 
-    for(const RedisBuffer &item: items)
+//    std::for_each(items.begin(), items.end(), [&result](const RedisBuffer &item) {
+//    std::for_each(items.begin(), items.end(), [&result](const RedisBuffer &item) {
+    for(const auto &item: items)
     {
-        append(result, '$');
-        append(result, std::to_string(item.size()));
-        append<>(result, crlf);
-        append(result, item);
-        append<>(result, crlf);
+        bufferAppend(result, '$');
+        bufferAppend(result, std::to_string(item.size()));
+        bufferAppend<>(result, crlf);
+        bufferAppend(result, item);
+        bufferAppend<>(result, crlf);
     }
 
     return result;
@@ -200,7 +239,6 @@ std::vector<char> RedisClientImpl::makeCommand(const std::deque<RedisBuffer> &it
 RedisValue RedisClientImpl::doSyncCommand(const std::deque<RedisBuffer> &buff)
 {
     boost::system::error_code ec;
-
 
     {
         std::vector<char> data = makeCommand(buff);
@@ -301,27 +339,6 @@ void RedisClientImpl::onRedisError(const RedisValue &v)
 void RedisClientImpl::defaulErrorHandler(const std::string &s)
 {
     throw std::runtime_error(s);
-}
-
-void RedisClientImpl::append(std::vector<char> &vec, const RedisBuffer &buf)
-{
-    vec.insert(vec.end(), buf.data(), buf.data() + buf.size());
-}
-
-void RedisClientImpl::append(std::vector<char> &vec, const std::string &s)
-{
-    vec.insert(vec.end(), s.begin(), s.end());
-}
-
-void RedisClientImpl::append(std::vector<char> &vec, const char *s)
-{
-    vec.insert(vec.end(), s, s + strlen(s));
-}
-
-void RedisClientImpl::append(std::vector<char> &vec, char c)
-{
-    vec.resize(vec.size() + 1);
-    vec[vec.size() - 1] = c;
 }
 
 size_t RedisClientImpl::subscribe(
