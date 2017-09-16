@@ -222,8 +222,6 @@ std::vector<char> RedisClientImpl::makeCommand(const std::deque<RedisBuffer> &it
     bufferAppend(result, std::to_string(items.size()));
     bufferAppend<>(result, crlf);
 
-//    std::for_each(items.begin(), items.end(), [&result](const RedisBuffer &item) {
-//    std::for_each(items.begin(), items.end(), [&result](const RedisBuffer &item) {
     for(const auto &item: items)
     {
         bufferAppend(result, '$');
