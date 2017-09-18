@@ -10,6 +10,7 @@
 #include <functional>
 
 #include "../redissyncclient.h"
+#include "../pipeline.h"
 
 namespace redisclient {
 
@@ -96,13 +97,31 @@ void RedisSyncClient::installErrorHandler(
     pimpl->errorHandler = std::move(handler);
 }
 
-RedisValue RedisSyncClient::command(const std::string &cmd, std::deque<RedisBuffer> args)
+RedisValue RedisSyncClient::command(std::string cmd, std::deque<RedisBuffer> args)
 {
     if(stateValid())
     {
-        args.emplace_front(cmd);
+        args.push_front(std::move(cmd));
 
         return pimpl->doSyncCommand(args);
+    }
+    else
+    {
+        return RedisValue();
+    }
+}
+
+Pipeline RedisSyncClient::pipelined()
+{
+    Pipeline pipe(*this);
+    return pipe;
+}
+
+RedisValue RedisSyncClient::pipelined(std::deque<std::deque<RedisBuffer>> commands)
+{
+    if(stateValid())
+    {
+        return pimpl->doSyncCommand(commands);
     }
     else
     {

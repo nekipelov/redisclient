@@ -5,6 +5,7 @@ SET(REDISCLIENT_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/redisclient/impl/redisparser.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/redisclient/impl/redisclientimpl.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/redisclient/impl/redisasyncclient.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/redisclient/impl/pipeline.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/redisclient/config.h
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/redisclient/version.h
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/redisclient/redisvalue.h
@@ -12,6 +13,7 @@ SET(REDISCLIENT_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/redisclient/redisparser.h
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/redisclient/redisbuffer.h
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/redisclient/redisasyncclient.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/redisclient/pipeline.h
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/redisclient/impl/redisclientimpl.h
 )
 
@@ -26,6 +28,7 @@ SET(EXAMPLES
     async_set_get2.cpp
     async_set_get.cpp
     sync_set_get.cpp
+    sync_pipeline.cpp
     benchmark.cpp
 )
 

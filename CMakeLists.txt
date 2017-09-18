@@ -43,6 +43,7 @@ SET(SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/redisclient/impl/redisparser.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/redisclient/impl/redisclientimpl.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/redisclient/impl/redisasyncclient.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/redisclient/impl/pipeline.cpp
 )
 
 SET(HEADERS
@@ -53,6 +54,7 @@ SET(HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/src/redisclient/redisparser.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/redisclient/redisbuffer.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/redisclient/redisasyncclient.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/redisclient/pipeline.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/redisclient/impl/redisclientimpl.h
 )
 

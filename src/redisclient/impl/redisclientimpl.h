@@ -63,7 +63,9 @@ public:
 
     REDIS_CLIENT_DECL static std::vector<char> makeCommand(const std::deque<RedisBuffer> &items);
 
-    REDIS_CLIENT_DECL RedisValue doSyncCommand(const std::deque<RedisBuffer> &buff);
+    REDIS_CLIENT_DECL RedisValue doSyncCommand(const std::deque<RedisBuffer> &command);
+    REDIS_CLIENT_DECL RedisValue doSyncCommand(const std::deque<std::deque<RedisBuffer>> &commands);
+    REDIS_CLIENT_DECL RedisValue syncReadResponse();
 
     REDIS_CLIENT_DECL void doAsyncCommand(
             std::vector<char> buff,
@@ -85,6 +87,7 @@ public:
     boost::asio::generic::stream_protocol::socket socket;
     RedisParser redisParser;
     boost::array<char, 4096> buf;
+    size_t bufSize; // only for sync 
     size_t subscribeSeq;
 
     typedef std::pair<size_t, std::function<void(const std::vector<char> &buf)> > MsgHandlerType;

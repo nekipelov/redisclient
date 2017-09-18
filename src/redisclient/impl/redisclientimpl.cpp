@@ -54,7 +54,8 @@ namespace
 namespace redisclient {
 
 RedisClientImpl::RedisClientImpl(boost::asio::io_service &ioService)
-    : strand(ioService), socket(ioService), subscribeSeq(0), state(State::Unconnected)
+    : strand(ioService), socket(ioService), bufSize(0),
+    subscribeSeq(0), state(State::Unconnected)
 {
 }
 
@@ -233,48 +234,86 @@ std::vector<char> RedisClientImpl::makeCommand(const std::deque<RedisBuffer> &it
 
     return result;
 }
-
-RedisValue RedisClientImpl::doSyncCommand(const std::deque<RedisBuffer> &buff)
+RedisValue RedisClientImpl::doSyncCommand(const std::deque<RedisBuffer> &command)
 {
     boost::system::error_code ec;
-
-    {
-        std::vector<char> data = makeCommand(buff);
-        boost::asio::write(socket, boost::asio::buffer(data), boost::asio::transfer_all(), ec);
-    }
+    std::vector<char> data = makeCommand(command);
+    boost::asio::write(socket, boost::asio::buffer(data), boost::asio::transfer_all(), ec);
 
     if( ec )
     {
         errorHandler(ec.message());
         return RedisValue();
     }
-    else
+
+    return syncReadResponse();
+}
+
+RedisValue RedisClientImpl::doSyncCommand(const std::deque<std::deque<RedisBuffer>> &commands)
+{
+    boost::system::error_code ec;
+    std::vector<std::vector<char>> data;
+    std::vector<boost::asio::const_buffer> buffers;
+
+    data.reserve(commands.size());
+    buffers.reserve(commands.size());
+
+    for(const auto &command: commands)
     {
-        boost::array<char, 4096> inbuff;
+        data.push_back(std::move(makeCommand(command)));
+        buffers.push_back(boost::asio::buffer(data.back()));
+    }
 
-        for(;;)
+    boost::asio::write(socket, buffers, boost::asio::transfer_all(), ec);
+
+    if( ec )
+    {
+        errorHandler(ec.message());
+        return RedisValue();
+    }
+
+    std::vector<RedisValue> responses;
+
+    for(size_t i = 0; i < commands.size(); ++i)
+    {
+        responses.push_back(std::move(syncReadResponse()));
+    }
+
+    return RedisValue(std::move(responses));
+}
+
+RedisValue RedisClientImpl::syncReadResponse()
+{
+    for(;;)
+    {
+        if (bufSize == 0)
         {
-            size_t size = socket.read_some(boost::asio::buffer(inbuff));
+            bufSize = socket.read_some(boost::asio::buffer(buf));
+        }
 
-            for(size_t pos = 0; pos < size;)
+        for(size_t pos = 0; pos < bufSize;)
+        {
+            std::pair<size_t, RedisParser::ParseResult> result =
+                redisParser.parse(buf.data() + pos, bufSize - pos);
+
+            pos += result.first;
+
+            if( result.second == RedisParser::Completed )
             {
-                std::pair<size_t, RedisParser::ParseResult> result =
-                    redisParser.parse(inbuff.data() + pos, size - pos);
-
-                if( result.second == RedisParser::Completed )
-                {
-                    return redisParser.result();
-                }
-                else if( result.second == RedisParser::Incompleted )
-                {
-                    pos += result.first;
-                    continue;
-                }
-                else
-                {
-                    errorHandler("[RedisClient] Parser error");
-                    return RedisValue();
-                }
+                ::memmove(buf.data(), buf.data() + pos, bufSize - pos);
+                bufSize -= pos;
+                return redisParser.result();
+            }
+            else if( result.second == RedisParser::Incompleted )
+            {
+                continue;
+            }
+            else
+            {
+                ::memmove(buf.data(), buf.data() + pos, bufSize - pos);
+                bufSize -= pos;
+                errorHandler("[RedisClient] Parser error");
+                return RedisValue();
             }
         }
     }

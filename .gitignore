@@ -1,2 +1,3 @@
 *.swp # vim files
+tags
 build/*

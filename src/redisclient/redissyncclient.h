@@ -21,6 +21,7 @@
 namespace redisclient {
 
 class RedisClientImpl;
+class Pipeline;
 
 class RedisSyncClient : boost::noncopyable {
 public:
@@ -52,7 +53,13 @@ public:
 
     // Execute command on Redis server with the list of arguments.
     REDIS_CLIENT_DECL RedisValue command(
-            const std::string &cmd, std::deque<RedisBuffer> args);
+            std::string cmd, std::deque<RedisBuffer> args);
+
+    // Create pipeline (see Pipeline)
+    REDIS_CLIENT_DECL Pipeline pipelined();
+
+    REDIS_CLIENT_DECL RedisValue pipelined(
+            std::deque<std::deque<RedisBuffer>> commands);
 
     // Return connection state. See RedisClientImpl::State.
     REDIS_CLIENT_DECL State state() const;
