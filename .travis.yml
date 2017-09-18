@@ -10,7 +10,7 @@ before_install:
   - sudo apt-get update -qq
 
 install:
-  - sudo apt-get install -qq libboost1.54-dev libboost-test1.54-dev libboost-system1.54-dev libboost-program-options1.54-dev libboost-date-time1.54-dev
+  - sudo apt-get install -qq libboost1.54-dev libboost-test1.54-dev libboost-system1.54-dev libboost-program-options1.54-dev libboost-date-time1.54-dev googlebenchmark
   - dpkg -l "libboost*" | sort
 
 script:
