@@ -3,13 +3,14 @@ cmake_minimum_required(VERSION 2.6)
 PROJECT(RedisClient)
 
 OPTION(ADDRESS_SANITIZER "Enable address sanitizer" OFF)
+OPTION(BENCHMARK "Build benmarks" OFF)
 
 if(NOT CMAKE_BUILD_TYPE)
     message(STATUS "No build type selected, default to Release")
     set(CMAKE_BUILD_TYPE "Release")
 endif()
 
-if( ADDRESS_SANITIZER )
+if(ADDRESS_SANITIZER)
     message(STATUS "Build with address-sanitizer")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
     set(CMAKE_LD_FLAGS "-fsanitize=address")
@@ -81,9 +82,9 @@ ENDFOREACH()
 INSTALL(DIRECTORY ${CMAKE_SOURCE_DIR}/src DESTINATION include)
 
 ADD_SUBDIRECTORY(examples)
-IF(NOT MSVC)
+if(ADDRESS_SANITIZER)
     ADD_SUBDIRECTORY(benchmarks)
-ENDIF()
+endif()
 
 INCLUDE(CTest)
 ADD_TEST(ParserTest parsertest)
