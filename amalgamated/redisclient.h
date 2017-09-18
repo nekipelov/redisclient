@@ -354,7 +354,9 @@ public:
 
      static std::vector<char> makeCommand(const std::deque<RedisBuffer> &items);
 
-     RedisValue doSyncCommand(const std::deque<RedisBuffer> &buff);
+     RedisValue doSyncCommand(const std::deque<RedisBuffer> &command);
+     RedisValue doSyncCommand(const std::deque<std::deque<RedisBuffer>> &commands);
+     RedisValue syncReadResponse();
 
      void doAsyncCommand(
             std::vector<char> buff,
@@ -376,6 +378,7 @@ public:
     boost::asio::generic::stream_protocol::socket socket;
     RedisParser redisParser;
     boost::array<char, 4096> buf;
+    size_t bufSize; // only for sync 
     size_t subscribeSeq;
 
     typedef std::pair<size_t, std::function<void(const std::vector<char> &buf)> > MsgHandlerType;
@@ -595,6 +598,7 @@ private:
 namespace redisclient {
 
 class RedisClientImpl;
+class Pipeline;
 
 class RedisSyncClient : boost::noncopyable {
 public:
@@ -626,7 +630,13 @@ public:
 
     // Execute command on Redis server with the list of arguments.
      RedisValue command(
-            const std::string &cmd, std::deque<RedisBuffer> args);
+            std::string cmd, std::deque<RedisBuffer> args);
+
+    // Create pipeline (see Pipeline)
+     Pipeline pipelined();
+
+     RedisValue pipelined(
+            std::deque<std::deque<RedisBuffer>> commands);
 
     // Return connection state. See RedisClientImpl::State.
      State state() const;
