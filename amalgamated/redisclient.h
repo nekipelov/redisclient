@@ -7,7 +7,7 @@
 
 #define REDISCLIENT_VERSION_H
 
-#define REDIS_CLIENT_VERSION 501 // 0.5.1
+#define REDIS_CLIENT_VERSION 600 // 0.6.0
 
 
 /*
@@ -148,6 +148,7 @@ public:
      bool operator == (const RedisValue &rhs) const;
      bool operator != (const RedisValue &rhs) const;
 
+     std::vector<RedisValue> &getArray();
 protected:
     template<typename T>
      T castTo() const;
@@ -227,7 +228,6 @@ public:
 
 protected:
      std::pair<size_t, ParseResult> parseChunk(const char *ptr, size_t size);
-     std::pair<size_t, ParseResult> parseArray(const char *ptr, size_t size);
 
     inline bool isChar(int c)
     {
@@ -244,31 +244,36 @@ protected:
 private:
     enum State {
         Start = 0,
+        StartArray = 1,
 
-        String = 1,
-        StringLF = 2,
+        String = 2,
+        StringLF = 3,
 
-        ErrorString = 3,
-        ErrorLF = 4,
+        ErrorString = 4,
+        ErrorLF = 5,
 
-        Integer = 5,
-        IntegerLF = 6,
+        Integer = 6,
+        IntegerLF = 7,
 
-        BulkSize = 7,
-        BulkSizeLF = 8,
-        Bulk = 9,
-        BulkCR = 10,
-        BulkLF = 11,
+        BulkSize = 8,
+        BulkSizeLF = 9,
+        Bulk = 10,
+        BulkCR = 11,
+        BulkLF = 12,
 
-        ArraySize = 12,
-        ArraySizeLF = 13,
+        ArraySize = 13,
+        ArraySizeLF = 14,
+    };
 
-    } state;
+    std::stack<State> states;
 
     long int bulkSize;
     std::vector<char> buf;
-    std::stack<long int> arrayStack;
-    std::stack<RedisValue> valueStack;
+    RedisValue redisValue;
+
+    // temporary variables
+    std::stack<long int> arraySizes;
+    std::stack<RedisValue> arrayValues;
 
     static const char stringReply = '+';
     static const char errorReply = '-';

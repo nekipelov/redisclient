@@ -57,6 +57,12 @@ std::vector<RedisValue> RedisValue::toArray() const
     return castTo< std::vector<RedisValue> >();
 }
 
+std::vector<RedisValue> &RedisValue::getArray()
+{
+    assert(isArray());
+    return boost::get<std::vector<RedisValue> &>(value);
+}
+
 std::string RedisValue::toString() const
 {
     const std::vector<char> &buf = toByteArray();

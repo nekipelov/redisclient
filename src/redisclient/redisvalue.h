@@ -72,6 +72,7 @@ public:
     REDIS_CLIENT_DECL bool operator == (const RedisValue &rhs) const;
     REDIS_CLIENT_DECL bool operator != (const RedisValue &rhs) const;
 
+    REDIS_CLIENT_DECL std::vector<RedisValue> &getArray();
 protected:
     template<typename T>
      T castTo() const;
