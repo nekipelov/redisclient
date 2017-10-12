@@ -20,9 +20,9 @@
 #include <functional>
 #include <memory>
 
-#include "../redisparser.h"
-#include "../redisbuffer.h"
-#include "../config.h"
+#include "redisclient/redisparser.h"
+#include "redisclient/redisbuffer.h"
+#include "redisclient/config.h"
 
 namespace redisclient {
 

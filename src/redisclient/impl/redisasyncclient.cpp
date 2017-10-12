@@ -9,7 +9,7 @@
 #include <memory>
 #include <functional>
 
-#include "../redisasyncclient.h"
+#include "redisclient/redisasyncclient.h"
 
 namespace redisclient {
 

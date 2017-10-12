@@ -9,8 +9,8 @@
 #include <memory>
 #include <functional>
 
-#include "../redissyncclient.h"
-#include "../pipeline.h"
+#include "redisclient/redissyncclient.h"
+#include "redisclient/pipeline.h"
 
 namespace redisclient {
 

@@ -114,7 +114,7 @@ bool RedisValue::typeEq() const
 }
 
 #ifdef REDIS_CLIENT_HEADER_ONLY
-#include "impl/redisvalue.cpp"
+#include "redisclient/impl/redisvalue.cpp"
 #endif
 
 #endif // REDISCLIENT_REDISVALUE_H

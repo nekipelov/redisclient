@@ -6,9 +6,9 @@
 #ifndef REDISCLIENT_PIPELINE_CPP
 #define REDISCLIENT_PIPELINE_CPP
 
-#include "../pipeline.h"
-#include "../redisvalue.h"
-#include "../redissyncclient.h"
+#include "redisclient/pipeline.h"
+#include "redisclient/redisvalue.h"
+#include "redisclient/redissyncclient.h"
 
 namespace redisclient
 {

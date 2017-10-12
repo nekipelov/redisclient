@@ -9,7 +9,7 @@
 #include <sstream>
 #include <assert.h>
 
-#include "../redisparser.h"
+#include "redisclient/redisparser.h"
 
 namespace redisclient {
 

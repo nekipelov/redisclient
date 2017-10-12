@@ -61,10 +61,10 @@ function(RedisClientLibrary LIB_NAME)
               NAMELINK_ONLY)
     endif()
 
-    # Install the headers
+    # Install the headers (and sources because of the header-only mode)
     file(RELATIVE_PATH module_path ${CMAKE_SOURCE_DIR}/src
          ${CMAKE_CURRENT_SOURCE_DIR})
-    foreach (HDR ${RedisClientLibrary_HEADERS})
+    foreach (HDR ${RedisClientLibrary_HEADERS} ${RedisClientLibrary_SOURCES})
       get_filename_component(path_within_module ${HDR} DIRECTORY)
       if (path_within_module STREQUAL "")
         install(FILES ${HDR}

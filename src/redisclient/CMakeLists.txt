@@ -6,7 +6,8 @@ set(hdrs config.h
          redisvalue.h
          version.h
          impl/redisclientimpl.h)
-set(srcs impl/redisasyncclient.cpp
+set(srcs impl/pipeline.cpp
+         impl/redisasyncclient.cpp
          impl/redisclientimpl.cpp
          impl/redisparser.cpp
          impl/redissyncclient.cpp
@@ -19,3 +20,14 @@ target_link_libraries(redisclient
     Boost::date_time
 )
 target_include_directories(redisclient PUBLIC ${BOOST_INCLUDE_DIRS})
+if (HEADER_ONLY)
+  target_compile_definitions(redisclient
+    PUBLIC
+      REDIS_CLIENT_HEADER_ONLY
+  )
+else()
+  target_compile_definitions(redisclient
+    PUBLIC
+      REDIS_CLIENT_SEPARATED_COMPILATION
+  )
+endif()
