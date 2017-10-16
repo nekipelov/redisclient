@@ -1,7 +1,7 @@
 # CMake script for RedisClient
 ############################################################
 
-cmake_minimum_required(VERSION 3.2)
+cmake_minimum_required(VERSION 3.1)
 
 # Project and Versioning
 project(RedisClient)
@@ -46,13 +46,7 @@ if (NOT Boost_USE_STATIC_LIBS)
   add_definitions(-DBOOST_ALL_DYN_LINK)
 endif()
 
-#find_package(Boost
-#  COMPONENTS
-#    system
-#    program_options
-#    unit_test_framework
-#    date_time
-#  REQUIRED)
+# Find all of our dependencies
 include(cmake/Dependencies.cmake)
 
 if (MSVC)
