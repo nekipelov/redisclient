@@ -109,13 +109,16 @@ function(RedisClientHeaderLibrary LIB_NAME)
     message(FATAL_ERROR "RedisClientHeaderLibrary(): LIB_NAME not defined")
   endif()
 
-  add_library(${LIB_NAME} ${RedisClientHeaderLibrary_HEADERS} INTERFACE)
-  target_include_directories(${LIB_NAME} PUBLIC
+  add_library(${LIB_NAME} INTERFACE)
+  target_include_directories(${LIB_NAME} INTERFACE
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src>
     $<INSTALL_INTERFACE:include>
   )
 
   if (RedisClientHeaderLibrary_WITH_INSTALL)
+    install(TARGETS ${LIB_NAME}
+            EXPORT ${CMAKE_PROJECT_NAME}-targets
+            COMPONENT Libraries)
     RedisClientInstallHeaders(HEADERS ${RedisClientHeaderLibrary_HEADERS})
   endif()
 endfunction()

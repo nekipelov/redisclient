@@ -1,4 +1,5 @@
 set(hdrs config.h
+         pipeline.h
          redisasyncclient.h
          redisbuffer.h
          redisparser.h
@@ -15,9 +16,14 @@ set(srcs impl/pipeline.cpp
 
 if (HEADER_ONLY)
   RedisClientHeaderLibrary(RedisClient HEADERS ${hdrs} ${srcs} WITH_INSTALL)
-  target_compile_definitions(RediSclient
-    PUBLIC
+  target_compile_definitions(RedisClient
+    INTERFACE
       REDIS_CLIENT_HEADER_ONLY
+  )
+  target_link_libraries(RedisClient
+    INTERFACE
+      Boost::boost
+      Boost::system
   )
 else()
   RedisClientLibrary(RedisClient SOURCES ${srcs} HEADERS ${hdrs} WITH_INSTALL)
@@ -25,10 +31,10 @@ else()
     PUBLIC
       REDIS_CLIENT_SEPARATED_COMPILATION
   )
+  target_link_libraries(RedisClient
+    PUBLIC
+      Boost::boost
+      Boost::system
+  )
 endif()
 
-target_link_libraries(RedisClient
-  PUBLIC
-    Boost::boost
-    Boost::system
-)
