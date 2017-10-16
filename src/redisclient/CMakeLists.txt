@@ -35,12 +35,12 @@ else()
       REDIS_CLIENT_SEPARATED_COMPILATION
   )
   target_include_directories(RedisClient
-    INTERFACE
+    PUBLIC
       ${Boost_INCLUDE_DIRS}
   )
   target_link_libraries(RedisClient
     PUBLIC
-      ${Boost_system_LIBRARY}
+      ${Boost_SYSTEM_LIBRARY}
   )
 endif()
 
