@@ -9,14 +9,40 @@ function(GetInstallLibDir output)
   set(${output} lib${LIBSUFFIX} PARENT_SCOPE)
 endfunction()
 
+# Function for installing headers
+#
+# Arguments:
+#   HEADERS The headers to install
+function(RedisClientInstallHeaders)
+  set(options)
+  set(oneValueArgs)
+  set(multiValueArgs HEADERS)
+  cmake_parse_arguments(RedisClientInstallHeaders
+      "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+
+  # Install the headers (and sources because of the header-only mode)
+  file(RELATIVE_PATH module_path ${CMAKE_SOURCE_DIR}/src
+       ${CMAKE_CURRENT_SOURCE_DIR})
+  foreach (HDR ${RedisClientInstallHeaders_HEADERS})
+    get_filename_component(path_within_module ${HDR} DIRECTORY)
+    if (path_within_module STREQUAL "")
+      install(FILES ${HDR}
+              COMPONENT Development
+              DESTINATION include/${module_path})
+    else()
+      install(FILES ${HDR}
+              COMPONENT Development
+              DESTINATION include/${module_path}/${path_within_module})
+    endif()
+  endforeach()
+endfunction()
+
 # Function for adding a RedisClient library to the build process
 #
 # Arguments:
 #   LIB_NAME Name for the library
 #   SOURCES  Named parameter for the source files that go into the library
 #   HEADERS  Named parameter for the headers that go into the library
-#   DEPENDENCIES Named parameter for the dependencies to link against the
-#                library
 #   WITH_INSTALL Whether this is a library that should be installed
 function(RedisClientLibrary LIB_NAME)
   set(options WITH_INSTALL)
@@ -31,7 +57,6 @@ function(RedisClientLibrary LIB_NAME)
 
   add_library(${LIB_NAME} ${RedisClientLibrary_SOURCES}
                           ${RedisClientLibrary_HEADERS})
-
   target_include_directories(${LIB_NAME} PUBLIC
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src>
     $<INSTALL_INTERFACE:include>
@@ -62,20 +87,36 @@ function(RedisClientLibrary LIB_NAME)
     endif()
 
     # Install the headers (and sources because of the header-only mode)
-    file(RELATIVE_PATH module_path ${CMAKE_SOURCE_DIR}/src
-         ${CMAKE_CURRENT_SOURCE_DIR})
-    foreach (HDR ${RedisClientLibrary_HEADERS} ${RedisClientLibrary_SOURCES})
-      get_filename_component(path_within_module ${HDR} DIRECTORY)
-      if (path_within_module STREQUAL "")
-        install(FILES ${HDR}
-                COMPONENT Development
-                DESTINATION include/${module_path})
-      else()
-        install(FILES ${HDR}
-                COMPONENT Development
-                DESTINATION include/${module_path}/${path_within_module})
-      endif()
-    endforeach()
+    RedisClientInstallHeaders(HEADERS ${RedisClientLibrary_HEADERS})
+  endif()
+endfunction()
+
+# Function for adding a header-only RedisClient library to the build process
+#
+# Arguments:
+#   LIB_NAME Name for the library
+#   SOURCES  Named parameter for the source files that go into the library
+#   HEADERS  Named parameter for the headers that go into the library
+#   WITH_INSTALL Whether this is a library that should be installed
+function(RedisClientHeaderLibrary LIB_NAME)
+  set(options WITH_INSTALL)
+  set(oneValueArgs)
+  set(multiValueArgs HEADERS)
+  cmake_parse_arguments(RedisClientHeaderLibrary "${options}" "${oneValueArgs}"
+                                                 "${multiValueArgs}" ${ARGN})
+
+  if (NOT DEFINED LIB_NAME)
+    message(FATAL_ERROR "RedisClientHeaderLibrary(): LIB_NAME not defined")
+  endif()
+
+  add_library(${LIB_NAME} ${RedisClientHeaderLibrary_HEADERS} INTERFACE)
+  target_include_directories(${LIB_NAME} PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src>
+    $<INSTALL_INTERFACE:include>
+  )
+
+  if (RedisClientHeaderLibrary_WITH_INSTALL)
+    RedisClientInstallHeaders(HEADERS ${RedisClientHeaderLibrary_HEADERS})
   endif()
 endfunction()
 
@@ -84,7 +125,7 @@ endfunction()
 # Arguments:
 #  TEST_NAME     Name of the test executable
 #  SOURCES       List of source files to compile into the test
-#  DEPENDENCIES  Dependencies (other than redisclient and the boost unit testing
+#  DEPENDENCIES  Dependencies (other than RedisClient and the boost unit testing
 #                framework) to link into the test 
 function(RedisClientTest TEST_NAME)
   set(options)
@@ -96,7 +137,7 @@ function(RedisClientTest TEST_NAME)
   add_executable(${TEST_NAME} ${RedisClientTest_SOURCES})
 
   target_include_directories(${TEST_NAME} PUBLIC ${BOOST_INCLUDE_DIRS})
-  target_link_libraries(${TEST_NAME} redisclient Boost::unit_test_framework)
+  target_link_libraries(${TEST_NAME} RedisClient Boost::unit_test_framework)
 
   add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
 endfunction()

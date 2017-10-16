@@ -11,11 +11,11 @@ foreach(EXAMPLE ${EXAMPLES})
   get_filename_component(EXECUTABLE ${EXAMPLE} NAME_WE)
   add_executable(${EXECUTABLE} ${EXAMPLE})
   target_link_libraries(${EXECUTABLE}
-      redisclient
-      Boost::system
+      RedisClient
       Boost::date_time)
 endforeach()
 
 target_link_libraries(benchmark
+    RedisClient
     Boost::program_options
 )

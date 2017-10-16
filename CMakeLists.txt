@@ -46,13 +46,14 @@ if (NOT Boost_USE_STATIC_LIBS)
   add_definitions(-DBOOST_ALL_DYN_LINK)
 endif()
 
-find_package(Boost
-  COMPONENTS
-    system
-    program_options
-    unit_test_framework
-    date_time
-  REQUIRED)
+#find_package(Boost
+#  COMPONENTS
+#    system
+#    program_options
+#    unit_test_framework
+#    date_time
+#  REQUIRED)
+include(cmake/Dependencies.cmake)
 
 if (MSVC)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W3")

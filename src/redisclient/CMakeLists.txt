@@ -13,21 +13,22 @@ set(srcs impl/pipeline.cpp
          impl/redissyncclient.cpp
          impl/redisvalue.cpp)
 
-RedisClientLibrary(redisclient SOURCES ${srcs} HEADERS ${hdrs} WITH_INSTALL)
-target_link_libraries(redisclient
-  PRIVATE
-    Boost::system
-    Boost::date_time
-)
-target_include_directories(redisclient PUBLIC ${BOOST_INCLUDE_DIRS})
 if (HEADER_ONLY)
-  target_compile_definitions(redisclient
+  RedisClientHeaderLibrary(RedisClient HEADERS ${hdrs} ${srcs} WITH_INSTALL)
+  target_compile_definitions(RediSclient
     PUBLIC
       REDIS_CLIENT_HEADER_ONLY
   )
 else()
-  target_compile_definitions(redisclient
+  RedisClientLibrary(RedisClient SOURCES ${srcs} HEADERS ${hdrs} WITH_INSTALL)
+  target_compile_definitions(RedisClient
     PUBLIC
       REDIS_CLIENT_SEPARATED_COMPILATION
   )
 endif()
+
+target_link_libraries(RedisClient
+  PUBLIC
+    Boost::boost
+    Boost::system
+)
