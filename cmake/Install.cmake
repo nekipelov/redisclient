@@ -21,7 +21,6 @@ install(EXPORT ${CMAKE_PROJECT_NAME}-targets
 install(FILES
     ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_PROJECT_NAME}Config.cmake
     ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_PROJECT_NAME}ConfigVersion.cmake
-    ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_PROJECT_NAME}Dependencies.cmake
     DESTINATION share/${CMAKE_PROJECT_NAME})
 
 install(FILES ${CMAKE_SOURCE_DIR}/cmake/Dependencies.cmake
