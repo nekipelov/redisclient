@@ -12,10 +12,10 @@ foreach(EXAMPLE ${EXAMPLES})
   add_executable(${EXECUTABLE} ${EXAMPLE})
   target_link_libraries(${EXECUTABLE}
       RedisClient
-      Boost::date_time)
+      ${Boost_DATE_TIME_LIBRARY})
 endforeach()
 
 target_link_libraries(benchmark
     RedisClient
-    Boost::program_options
+    ${Boost_PROGRAM_OPTIONS_LIBRARY}
 )

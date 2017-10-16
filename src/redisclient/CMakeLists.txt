@@ -20,10 +20,13 @@ if (HEADER_ONLY)
     INTERFACE
       REDIS_CLIENT_HEADER_ONLY
   )
+  target_include_directories(RedisClient
+    INTERFACE
+      ${Boost_INCLUDE_DIRS}
+  )
   target_link_libraries(RedisClient
     INTERFACE
-      Boost::boost
-      Boost::system
+      ${Boost_SYSTEM_LIBRARY}
   )
 else()
   RedisClientLibrary(RedisClient SOURCES ${srcs} HEADERS ${hdrs} WITH_INSTALL)
@@ -31,10 +34,13 @@ else()
     PUBLIC
       REDIS_CLIENT_SEPARATED_COMPILATION
   )
+  target_include_directories(RedisClient
+    INTERFACE
+      ${Boost_INCLUDE_DIRS}
+  )
   target_link_libraries(RedisClient
     PUBLIC
-      Boost::boost
-      Boost::system
+      ${Boost_system_LIBRARY}
   )
 endif()
 

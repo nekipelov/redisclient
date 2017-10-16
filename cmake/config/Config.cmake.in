@@ -14,7 +14,7 @@
 #  -@CMAKE_PROJECT_NAME@_LIBRARY_DIRS  :Directories to add for libraries
 #  -@CMAKE_PROJECT_NAME@_FOUND	       :Found status
 
-set(@CMAKE_PROJECT_NAME@Install)
+set(@CMAKE_PROJECT_NAME@Install ON)
 include(${CMAKE_CURRENT_LIST_DIR}/@CMAKE_PROJECT_NAME@Dependencies.cmake)
 
 # Our library dependencies (contains definitions for IMPORTED targets)

@@ -140,7 +140,7 @@ function(RedisClientTest TEST_NAME)
   add_executable(${TEST_NAME} ${RedisClientTest_SOURCES})
 
   target_include_directories(${TEST_NAME} PUBLIC ${BOOST_INCLUDE_DIRS})
-  target_link_libraries(${TEST_NAME} RedisClient Boost::unit_test_framework)
+  target_link_libraries(${TEST_NAME} RedisClient ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
 
   add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
 endfunction()
