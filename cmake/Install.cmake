@@ -3,10 +3,6 @@ set(LIB_INSTALL_DIR ${CMAKE_INSTALL_PREFIX}/${INSTALL_LIB_DIR})
 
 include(CMakePackageConfigHelpers)
 
-file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_PROJECT_NAME}Dependencies.cmake
-     "include(CMakeFindDependencyMacro)\n"
-     "find_dependency(Boost 1.50.0 COMPONENTS system)\n")
-
 configure_package_config_file(cmake/config/Config.cmake.in
     ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_PROJECT_NAME}Config.cmake
     INSTALL_DESTINATION share/${CMAKE_PROJECT_NAME}
