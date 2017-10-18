@@ -533,10 +533,11 @@ RedisValue RedisClientImpl::syncReadResponse()
 
             pos += result.first;
 
+            ::memmove(buf.data(), buf.data() + pos, bufSize - pos);
+            bufSize -= pos;
+
             if( result.second == RedisParser::Completed )
             {
-                ::memmove(buf.data(), buf.data() + pos, bufSize - pos);
-                bufSize -= pos;
                 return redisParser.result();
             }
             else if( result.second == RedisParser::Incompleted )
@@ -545,8 +546,6 @@ RedisValue RedisClientImpl::syncReadResponse()
             }
             else
             {
-                ::memmove(buf.data(), buf.data() + pos, bufSize - pos);
-                bufSize -= pos;
                 errorHandler("[RedisClient] Parser error");
                 return RedisValue();
             }
