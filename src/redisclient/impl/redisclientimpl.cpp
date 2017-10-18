@@ -103,13 +103,13 @@ void RedisClientImpl::doProcessMessage(RedisValue v)
             const RedisValue &command   = result[0];
             const RedisValue &queueName = result[(resultSize == 3)?1:2];
             const RedisValue &value     = result[(resultSize == 3)?2:3];
-            const RedisValue &pattern   = (resultSize == 4) ? result[1] : "";
+            const RedisValue &pattern   = (resultSize == 4) ? result[1] : queueName;
 
             std::string cmd = command.toString();
 
             if( cmd == "message" || cmd == "pmessage" )
             {
-                SingleShotHandlersMap::iterator it = singleShotMsgHandlers.find(queueName.toString());
+                SingleShotHandlersMap::iterator it = singleShotMsgHandlers.find(pattern.toString());
                 if( it != singleShotMsgHandlers.end() )
                 {
                     strand.post(std::bind(it->second, value.toByteArray()));
@@ -117,7 +117,7 @@ void RedisClientImpl::doProcessMessage(RedisValue v)
                 }
 
                 std::pair<MsgHandlersMap::iterator, MsgHandlersMap::iterator> pair =
-                        msgHandlers.equal_range(queueName.toString());
+                        msgHandlers.equal_range(pattern.toString());
                 for(MsgHandlersMap::iterator handlerIt = pair.first;
                     handlerIt != pair.second; ++handlerIt)
                 {
