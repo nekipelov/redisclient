@@ -13,7 +13,7 @@
 #include <list>
 #include <functional>
 
-#include "impl/redisclientimpl.h"
+#include "redisclient/impl/redisclientimpl.h"
 #include "redisbuffer.h"
 #include "redisvalue.h"
 #include "config.h"
@@ -74,7 +74,7 @@ private:
 }
 
 #ifdef REDIS_CLIENT_HEADER_ONLY
-#include "impl/redissyncclient.cpp"
+#include "redisclient/impl/redissyncclient.cpp"
 #endif
 
 #endif // REDISSYNCCLIENT_REDISCLIENT_H

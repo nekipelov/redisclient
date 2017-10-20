@@ -89,7 +89,7 @@ private:
 }
 
 #ifdef REDIS_CLIENT_HEADER_ONLY
-#include "impl/redisparser.cpp"
+#include "redisclient/impl/redisparser.cpp"
 #endif
 
 #endif // REDISCLIENT_REDISPARSER_H
