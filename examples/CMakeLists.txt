@@ -3,6 +3,7 @@ set(EXAMPLES
     async_pubsub.cpp
     async_set_get2.cpp
     async_set_get.cpp
+    sync_pipeline.cpp
     sync_set_get.cpp
     benchmark.cpp
 )
