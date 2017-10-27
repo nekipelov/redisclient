@@ -260,7 +260,7 @@ RedisValue RedisClientImpl::doSyncCommand(const std::deque<std::deque<RedisBuffe
 
     for(const auto &command: commands)
     {
-        data.push_back(std::move(makeCommand(command)));
+        data.push_back(makeCommand(command));
         buffers.push_back(boost::asio::buffer(data.back()));
     }
 
@@ -276,7 +276,7 @@ RedisValue RedisClientImpl::doSyncCommand(const std::deque<std::deque<RedisBuffe
 
     for(size_t i = 0; i < commands.size(); ++i)
     {
-        responses.push_back(std::move(syncReadResponse()));
+        responses.push_back(syncReadResponse());
     }
 
     return RedisValue(std::move(responses));
@@ -348,7 +348,7 @@ void RedisClientImpl::asyncRead(const boost::system::error_code &ec, const size_
 
         if( result.second == RedisParser::Completed )
         {
-            doProcessMessage(std::move(redisParser.result()));
+            doProcessMessage(redisParser.result());
         }
         else if( result.second == RedisParser::Incompleted )
         {
@@ -437,8 +437,8 @@ void RedisClientImpl::singleShotSubscribe(
     }
 }
 
-void RedisClientImpl::unsubscribe(const std::string &command, 
-                                  size_t handleId, 
+void RedisClientImpl::unsubscribe(const std::string &command,
+                                  size_t handleId,
                                   const std::string &channel,
                                   std::function<void(RedisValue)> handler)
 {
