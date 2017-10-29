@@ -10,9 +10,9 @@ static const std::string redisKey = "unique-redis-key-example";
 static const std::string redisValue = "unique-redis-value";
 
 void handleConnected(boost::asio::io_service &ioService, redisclient::RedisAsyncClient &redis,
-        bool ok, const std::string &errmsg)
+        boost::system::error_code ec)
 {
-    if( ok )
+    if( !ec )
     {
         redis.command("SET", {redisKey, redisValue}, [&](const redisclient::RedisValue &v) {
             std::cerr << "SET: " << v.toString() << std::endl;
@@ -28,7 +28,7 @@ void handleConnected(boost::asio::io_service &ioService, redisclient::RedisAsync
     }
     else
     {
-        std::cerr << "Can't connect to redis: " << errmsg << std::endl;
+        std::cerr << "Can't connect to redis: " << ec.message() << std::endl;
     }
 }
 
@@ -36,13 +36,14 @@ int main(int, char **)
 {
     boost::asio::ip::address address = boost::asio::ip::address::from_string("127.0.0.1");
     const unsigned short port = 6379;
+    boost::asio::ip::tcp::endpoint endpoint(address, port);
 
     boost::asio::io_service ioService;
     redisclient::RedisAsyncClient redis(ioService);
 
-    redis.asyncConnect(address, port,
+    redis.connect(endpoint,
             std::bind(&handleConnected, std::ref(ioService), std::ref(redis),
-                std::placeholders::_1, std::placeholders::_2));
+                std::placeholders::_1));
 
     ioService.run();
 

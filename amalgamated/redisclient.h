@@ -332,7 +332,7 @@ public:
 
      void handleAsyncConnect(
             const boost::system::error_code &ec,
-            const std::function<void(bool, const std::string &)> &handler);
+            std::function<void(boost::system::error_code)> handler);
 
      size_t subscribe(const std::string &command,
         const std::string &channel,
@@ -354,9 +354,15 @@ public:
 
      static std::vector<char> makeCommand(const std::deque<RedisBuffer> &items);
 
-     RedisValue doSyncCommand(const std::deque<RedisBuffer> &command);
-     RedisValue doSyncCommand(const std::deque<std::deque<RedisBuffer>> &commands);
-     RedisValue syncReadResponse();
+     RedisValue doSyncCommand(const std::deque<RedisBuffer> &command,
+        const boost::posix_time::time_duration &timeout,
+        boost::system::error_code &ec);
+     RedisValue doSyncCommand(const std::deque<std::deque<RedisBuffer>> &commands,
+        const boost::posix_time::time_duration &timeout,
+        boost::system::error_code &ec);
+     RedisValue syncReadResponse(
+            const boost::posix_time::time_duration &timeout,
+            boost::system::error_code &ec);
 
      void doAsyncCommand(
             std::vector<char> buff,
@@ -374,11 +380,12 @@ public:
     template<typename Handler>
     inline void post(const Handler &handler);
 
+    boost::asio::io_service &ioService;
     boost::asio::strand strand;
     boost::asio::generic::stream_protocol::socket socket;
     RedisParser redisParser;
     boost::array<char, 4096> buf;
-    size_t bufSize; // only for sync 
+    size_t bufSize; // only for sync
     size_t subscribeSeq;
 
     typedef std::pair<size_t, std::function<void(const std::vector<char> &buf)> > MsgHandlerType;
@@ -474,37 +481,14 @@ public:
 
     // Connect to redis server
      void connect(
-            const boost::asio::ip::address &address,
-            unsigned short port,
-            std::function<void(bool, const std::string &)> handler);
-
-    // Connect to redis server
-     void connect(
             const boost::asio::ip::tcp::endpoint &endpoint,
-            std::function<void(bool, const std::string &)> handler);
+            std::function<void(boost::system::error_code)> handler);
 
 
      void connect(
             const boost::asio::local::stream_protocol::endpoint &endpoint,
-            std::function<void(bool, const std::string &)> handler);
+            std::function<void(boost::system::error_code)> handler);
 
-
-    // backward compatibility
-    inline void asyncConnect(
-            const boost::asio::ip::address &address,
-            unsigned short port,
-            std::function<void(bool, const std::string &)> handler)
-    {
-        connect(address, port, std::move(handler));
-    }
-
-    // backward compatibility
-    inline void asyncConnect(
-            const boost::asio::ip::tcp::endpoint &endpoint,
-            std::function<void(bool, const std::string &)> handler)
-    {
-        connect(endpoint, handler);
-    }
 
     // Return true if is connected to redis.
     // Deprecated: use state() == RedisAsyncClisend::State::Connected.
@@ -608,20 +592,21 @@ public:
      ~RedisSyncClient();
 
     // Connect to redis server
-     bool connect(
+     void connect(
             const boost::asio::ip::tcp::endpoint &endpoint,
-            std::string &errmsg);
+            boost::system::error_code &ec);
 
     // Connect to redis server
-     bool connect(
-            const boost::asio::ip::address &address,
-            unsigned short port,
-            std::string &errmsg);
+     void connect(
+            const boost::asio::ip::tcp::endpoint &endpoint);
 
 
-     bool connect(
+     void connect(
             const boost::asio::local::stream_protocol::endpoint &endpoint,
-            std::string &errmsg);
+            boost::system::error_code &ec);
+
+     void connect(
+            const boost::asio::local::stream_protocol::endpoint &endpoint);
 
 
     // Set custom error handler.
@@ -632,8 +617,17 @@ public:
      RedisValue command(
             std::string cmd, std::deque<RedisBuffer> args);
 
+    // Execute command on Redis server with the list of arguments.
+     RedisValue command(
+            std::string cmd, std::deque<RedisBuffer> args,
+            boost::system::error_code &ec);
+
     // Create pipeline (see Pipeline)
      Pipeline pipelined();
+
+     RedisValue pipelined(
+            std::deque<std::deque<RedisBuffer>> commands,
+            boost::system::error_code &ec);
 
      RedisValue pipelined(
             std::deque<std::deque<RedisBuffer>> commands);
@@ -641,11 +635,21 @@ public:
     // Return connection state. See RedisClientImpl::State.
      State state() const;
 
+    RedisSyncClient &setConnectTimeout(const boost::posix_time::time_duration &timeout);
+    RedisSyncClient &setCommandTimeout(const boost::posix_time::time_duration &timeout);
+
+    RedisSyncClient &setTcpNoDelay(bool enable);
+    RedisSyncClient &setTcpKeepAlive(bool enable);
+
 protected:
      bool stateValid() const;
 
 private:
     std::shared_ptr<RedisClientImpl> pimpl;
+    boost::posix_time::time_duration connectTimeout;
+    boost::posix_time::time_duration commandTimeout;
+    bool tcpNoDelay;
+    bool tcpKeepAlive;
 };
 
 }

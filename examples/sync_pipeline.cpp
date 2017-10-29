@@ -10,14 +10,17 @@ int main(int, char **)
 {
     boost::asio::ip::address address = boost::asio::ip::address::from_string("127.0.0.1");
     const unsigned short port = 6379;
+    boost::asio::ip::tcp::endpoint endpoint(address, port);
 
     boost::asio::io_service ioService;
     redisclient::RedisSyncClient redis(ioService);
-    std::string errmsg;
+    boost::system::error_code ec;
 
-    if( !redis.connect(address, port, errmsg) )
+    redis.connect(endpoint, ec);
+
+    if (ec)
     {
-        std::cerr << "Can't connect to redis: " << errmsg << std::endl;
+        std::cerr << "Can't connect to redis: " << ec.message() << std::endl;
         return EXIT_FAILURE;
     }
 

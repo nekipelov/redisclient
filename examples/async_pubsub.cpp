@@ -61,8 +61,9 @@ protected:
             publishTimer.cancel();
         }
 
-        publisher.connect(address, port,
-                          std::bind(&Client::onPublisherConnected, this, std::placeholders::_1, std::placeholders::_2));
+        boost::asio::ip::tcp::endpoint endpoint(address, port);
+        publisher.connect(endpoint,
+                          std::bind(&Client::onPublisherConnected, this, std::placeholders::_1));
     }
 
     void connectSubscriber()
@@ -76,8 +77,9 @@ protected:
             subscriber.disconnect();
         }
 
-        subscriber.connect(address, port,
-                           std::bind(&Client::onSubscriberConnected, this, std::placeholders::_1, std::placeholders::_2));
+        boost::asio::ip::tcp::endpoint endpoint(address, port);
+        subscriber.connect(endpoint,
+                           std::bind(&Client::onSubscriberConnected, this, std::placeholders::_1));
     }
 
     void callLater(boost::asio::deadline_timer &timer,
@@ -107,11 +109,11 @@ protected:
         callLater(publishTimer, &Client::onPublishTimeout);
     }
 
-    void onPublisherConnected(bool status, const std::string &error)
+    void onPublisherConnected(boost::system::error_code ec)
     {
-        if( !status )
+        if(ec)
         {
-            std::cerr << "onPublisherConnected: can't connect to redis: " << error << "\n";
+            std::cerr << "onPublisherConnected: can't connect to redis: " << ec.message() << "\n";
             callLater(connectPublisherTimer, &Client::connectPublisher);
         }
         else
@@ -122,11 +124,11 @@ protected:
         }
     }
 
-    void onSubscriberConnected(bool status, const std::string &error)
+    void onSubscriberConnected(boost::system::error_code ec)
     {
-        if( !status )
+        if( ec )
         {
-            std::cerr << "onSubscriberConnected: can't connect to redis: " << error << "\n";
+            std::cerr << "onSubscriberConnected: can't connect to redis: " << ec.message() << "\n";
             callLater(connectSubscriberTimer, &Client::connectSubscriber);
         }
         else

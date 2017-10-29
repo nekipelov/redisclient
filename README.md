@@ -7,11 +7,13 @@ Build master status: [![Build travis status](https://travis-ci.org/nekipelov/red
 Build develop status: [![Build travis status](https://travis-ci.org/nekipelov/redisclient.svg?branch=develop)](https://travis-ci.org/nekipelov/redisclient)
 [![Build appveyor status](https://ci.appveyor.com/api/projects/status/github/nekipelov/redisclient?branch=develop)](https://ci.appveyor.com/project/nekipelov/redisclient/branch/develop)
 
-Current version: 0.6.0.
+Current version: 1.0.0.
 
 Boost.asio based Redis-client header-only library. Simple but powerfull.
 
 This version requires С++11 compiler. If you want to use this library with old compiler, use version 0.4: https://github.com/nekipelov/redisclient/tree/v0.4.
+
+Have amalgamated sources. See files in the `amalgamated` directory.
 
 Get/set example:
 
@@ -27,14 +29,17 @@ int main(int, char **)
 {
     boost::asio::ip::address address = boost::asio::ip::address::from_string("127.0.0.1");
     const unsigned short port = 6379;
+    boost::asio::ip::tcp::endpoint endpoint(address, port);
 
     boost::asio::io_service ioService;
     redisclient::RedisSyncClient redis(ioService);
-    std::string errmsg;
+    boost::system::error_code ec;
 
-    if( !redis.connect(address, port, errmsg) )
+    redis.connect(endpoint, ec);
+
+    if(ec)
     {
-        std::cerr << "Can't connect to redis: " << errmsg << std::endl;
+        std::cerr << "Can't connect to redis: " << ec.message() << std::endl;
         return EXIT_FAILURE;
     }
 
@@ -78,9 +83,9 @@ static const std::string redisKey = "unique-redis-key-example";
 static const std::string redisValue = "unique-redis-value";
 
 void handleConnected(boost::asio::io_service &ioService, redisclient::RedisAsyncClient &redis,
-        bool ok, const std::string &errmsg)
+        boost::system::error_code ec)
 {
-    if( ok )
+    if( !ec )
     {
         redis.command("SET", {redisKey, redisValue}, [&](const redisclient::RedisValue &v) {
             std::cerr << "SET: " << v.toString() << std::endl;
@@ -96,7 +101,7 @@ void handleConnected(boost::asio::io_service &ioService, redisclient::RedisAsync
     }
     else
     {
-        std::cerr << "Can't connect to redis: " << errmsg << std::endl;
+        std::cerr << "Can't connect to redis: " << ec.message() << std::endl;
     }
 }
 
@@ -104,193 +109,16 @@ int main(int, char **)
 {
     boost::asio::ip::address address = boost::asio::ip::address::from_string("127.0.0.1");
     const unsigned short port = 6379;
+    boost::asio::ip::tcp::endpoint endpoint(address, port);
 
     boost::asio::io_service ioService;
     redisclient::RedisAsyncClient redis(ioService);
 
-    redis.asyncConnect(address, port,
+    redis.connect(endpoint,
             std::bind(&handleConnected, std::ref(ioService), std::ref(redis),
-                std::placeholders::_1, std::placeholders::_2));
+                std::placeholders::_1));
 
     ioService.run();
-
-    return 0;
-}
-```
-
-Publish/subscribe example:
-
-```cpp
-#include <string>
-#include <iostream>
-#include <boost/asio/ip/address.hpp>
-#include <boost/format.hpp>
-#include <boost/asio/deadline_timer.hpp>
-
-#include <redisclient/redisasyncclient.h>
-
-using namespace redisclient;
-
-static const std::string channelName = "unique-redis-channel-name-example";
-static const boost::posix_time::seconds timeout(1);
-
-class Client
-{
-public:
-    Client(boost::asio::io_service &ioService,
-           const boost::asio::ip::address &address,
-           unsigned short port)
-        : ioService(ioService), publishTimer(ioService),
-          connectSubscriberTimer(ioService), connectPublisherTimer(ioService),
-          address(address), port(port),
-          publisher(ioService), subscriber(ioService)
-    {
-        publisher.installErrorHandler(std::bind(&Client::connectPublisher, this));
-        subscriber.installErrorHandler(std::bind(&Client::connectSubscriber, this));
-    }
-
-    void publish(const std::string &str)
-    {
-        publisher.publish(channelName, str);
-    }
-
-    void start()
-    {
-        connectPublisher();
-        connectSubscriber();
-    }
-
-protected:
-    void errorPubProxy(const std::string &)
-    {
-        publishTimer.cancel();
-        connectPublisher();
-    }
-
-    void errorSubProxy(const std::string &)
-    {
-        connectSubscriber();
-    }
-
-    void connectPublisher()
-    {
-        std::cerr << "connectPublisher\n";
-
-        if( publisher.state() == RedisAsyncClient::State::Connected )
-        {
-            std::cerr << "disconnectPublisher\n";
-
-            publisher.disconnect();
-            publishTimer.cancel();
-        }
-
-        publisher.connect(address, port,
-                          std::bind(&Client::onPublisherConnected, this, std::placeholders::_1, std::placeholders::_2));
-    }
-
-    void connectSubscriber()
-    {
-        std::cerr << "connectSubscriber\n";
-
-        if( subscriber.state() == RedisAsyncClient::State::Connected ||
-                subscriber.state() == RedisAsyncClient::State::Subscribed )
-        {
-            std::cerr << "disconnectSubscriber\n";
-            subscriber.disconnect();
-        }
-
-        subscriber.connect(address, port,
-                           std::bind(&Client::onSubscriberConnected, this, std::placeholders::_1, std::placeholders::_2));
-    }
-
-    void callLater(boost::asio::deadline_timer &timer,
-                   void(Client::*callback)())
-    {
-        std::cerr << "callLater\n";
-        timer.expires_from_now(timeout);
-        timer.async_wait([callback, this](const boost::system::error_code &ec) {
-            if( !ec )
-            {
-                (this->*callback)();
-            }
-        });
-    }
-
-    void onPublishTimeout()
-    {
-        static size_t counter = 0;
-        std::string msg = str(boost::format("message %1%")  % counter++);
-
-        if( publisher.state() == RedisAsyncClient::State::Connected )
-        {
-            std::cerr << "pub " << msg << "\n";
-            publish(msg);
-        }
-
-        callLater(publishTimer, &Client::onPublishTimeout);
-    }
-
-    void onPublisherConnected(bool status, const std::string &error)
-    {
-        if( !status )
-        {
-            std::cerr << "onPublisherConnected: can't connect to redis: " << error << "\n";
-            callLater(connectPublisherTimer, &Client::connectPublisher);
-        }
-        else
-        {
-            std::cerr << "onPublisherConnected ok\n";
-
-            callLater(publishTimer, &Client::onPublishTimeout);
-        }
-    }
-
-    void onSubscriberConnected(bool status, const std::string &error)
-    {
-        if( !status )
-        {
-            std::cerr << "onSubscriberConnected: can't connect to redis: " << error << "\n";
-            callLater(connectSubscriberTimer, &Client::connectSubscriber);
-        }
-        else
-        {
-            std::cerr << "onSubscriberConnected ok\n";
-            subscriber.subscribe(channelName,
-                                 std::bind(&Client::onMessage, this, std::placeholders::_1));
-        }
-    }
-
-    void onMessage(const std::vector<char> &buf)
-    {
-        std::string s(buf.begin(), buf.end());
-        std::cout << "onMessage: " << s << "\n";
-    }
-
-private:
-    boost::asio::io_service &ioService;
-    boost::asio::deadline_timer publishTimer;
-    boost::asio::deadline_timer connectSubscriberTimer;
-    boost::asio::deadline_timer connectPublisherTimer;
-    const boost::asio::ip::address address;
-    const unsigned short port;
-
-    RedisAsyncClient publisher;
-    RedisAsyncClient subscriber;
-};
-
-int main(int, char **)
-{
-    boost::asio::ip::address address = boost::asio::ip::address::from_string("127.0.0.1");
-    const unsigned short port = 6379;
-
-    boost::asio::io_service ioService;
-
-    Client client(ioService, address, port);
-
-    client.start();
-    ioService.run();
-
-    std::cerr << "done\n";
 
     return 0;
 }

@@ -139,7 +139,7 @@ public:
 
                 client->connect(endpoint,
                         std::bind(&Benchmark::onConnect, this,
-                            std::placeholders::_1, std::placeholders::_2, callback));
+                            std::placeholders::_1, callback));
             }
             {
                 auto client = std::make_shared<redisclient::RedisAsyncClient>(ioService);
@@ -147,15 +147,15 @@ public:
                 std::function<void()> callback = std::bind(&Benchmark::runRpcFetcher, this, rpcFetcher);
 
                 client->connect(endpoint, std::bind(&Benchmark::onConnect, this,
-                            std::placeholders::_1, std::placeholders::_2, callback));
+                            std::placeholders::_1, callback));
             }
         }
         else
         {
             auto client = std::make_shared<redisclient::RedisAsyncClient>(ioService);
 
-            client->asyncConnect(endpoint, std::bind(&Benchmark::onConnect, this,
-                        std::placeholders::_1, std::placeholders::_2, [=]() {
+            client->connect(endpoint, std::bind(&Benchmark::onConnect, this,
+                        std::placeholders::_1, [=]() {
                 for(size_t i = 0; i < config.workersCount; ++i)
                 {
                     auto worker = std::make_shared<Worker>(ioService, client);
@@ -179,12 +179,12 @@ private:
         rpcFetcher->run();
     }
 
-    void onConnect(bool connected, const std::string &errorMessage, std::function<void()> callback)
+    void onConnect(boost::system::error_code ec, std::function<void()> callback)
     {
-        if( !connected)
+        if(ec)
         {
             std::cerr << "Can't connect to redis " << config.address << ":" << config.port
-                << ": " << errorMessage;
+                << ": " << ec.message() << "\n";
             ioService.stop();
         }
         else

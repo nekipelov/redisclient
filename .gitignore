@@ -1,3 +1,5 @@
-*.swp # vim files
+# vim files
+*.swp
 tags
 build/*
+

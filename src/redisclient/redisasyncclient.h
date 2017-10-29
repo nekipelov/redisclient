@@ -38,37 +38,14 @@ public:
 
     // Connect to redis server
     REDIS_CLIENT_DECL void connect(
-            const boost::asio::ip::address &address,
-            unsigned short port,
-            std::function<void(bool, const std::string &)> handler);
-
-    // Connect to redis server
-    REDIS_CLIENT_DECL void connect(
             const boost::asio::ip::tcp::endpoint &endpoint,
-            std::function<void(bool, const std::string &)> handler);
+            std::function<void(boost::system::error_code)> handler);
 
 #ifdef BOOST_ASIO_HAS_LOCAL_SOCKETS
     REDIS_CLIENT_DECL void connect(
             const boost::asio::local::stream_protocol::endpoint &endpoint,
-            std::function<void(bool, const std::string &)> handler);
+            std::function<void(boost::system::error_code)> handler);
 #endif
-
-    // backward compatibility
-    inline void asyncConnect(
-            const boost::asio::ip::address &address,
-            unsigned short port,
-            std::function<void(bool, const std::string &)> handler)
-    {
-        connect(address, port, std::move(handler));
-    }
-
-    // backward compatibility
-    inline void asyncConnect(
-            const boost::asio::ip::tcp::endpoint &endpoint,
-            std::function<void(bool, const std::string &)> handler)
-    {
-        connect(endpoint, handler);
-    }
 
     // Return true if is connected to redis.
     // Deprecated: use state() == RedisAsyncClisend::State::Connected.

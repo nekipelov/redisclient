@@ -47,6 +47,7 @@ RedisValue Pipeline::finish()
 
 
 
+
 namespace redisclient {
 
 RedisAsyncClient::RedisAsyncClient(boost::asio::io_service &ioService)
@@ -60,17 +61,15 @@ RedisAsyncClient::~RedisAsyncClient()
     pimpl->close();
 }
 
-void RedisAsyncClient::connect(const boost::asio::ip::address &address,
-                               unsigned short port,
-                               std::function<void(bool, const std::string &)> handler)
-{
-    boost::asio::ip::tcp::endpoint endpoint(address, port);
-    connect(endpoint, std::move(handler));
-}
-
 void RedisAsyncClient::connect(const boost::asio::ip::tcp::endpoint &endpoint,
-                               std::function<void(bool, const std::string &)> handler)
+                               std::function<void(boost::system::error_code)> handler)
 {
+    if( pimpl->state == State::Closed )
+    {
+        pimpl->redisParser = RedisParser();
+        std::move(pimpl->socket);
+    }
+
     if( pimpl->state == State::Unconnected || pimpl->state == State::Closed )
     {
         pimpl->state = State::Connecting;
@@ -79,17 +78,18 @@ void RedisAsyncClient::connect(const boost::asio::ip::tcp::endpoint &endpoint,
     }
     else
     {
-        std::stringstream ss;
-
-        ss << "RedisAsyncClient::connect called on socket with state " << to_string(pimpl->state);
-        handler(false, ss.str());
+        // FIXME: add correct error message
+        //std::stringstream ss;
+        //ss << "RedisAsyncClient::connect called on socket with state " << to_string(pimpl->state);
+        //handler(false, ss.str());
+        handler(boost::system::error_code());
     }
 }
 
 #ifdef BOOST_ASIO_HAS_LOCAL_SOCKETS
 
 void RedisAsyncClient::connect(const boost::asio::local::stream_protocol::endpoint &endpoint,
-                               std::function<void(bool, const std::string &)> handler)
+                               std::function<void(boost::system::error_code)> handler)
 {
     if( pimpl->state == State::Unconnected || pimpl->state == State::Closed )
     {
@@ -99,10 +99,11 @@ void RedisAsyncClient::connect(const boost::asio::local::stream_protocol::endpoi
     }
     else
     {
-        std::stringstream ss;
-
-        ss << "RedisAsyncClient::connect called on socket with state " << to_string(pimpl->state);
-        handler(false, ss.str());
+        // FIXME: add correct error message
+        //std::stringstream ss;
+        //ss << "RedisAsyncClient::connect called on socket with state " << to_string(pimpl->state);
+        //handler(false, ss.str());
+        handler(boost::system::error_code());
     }
 }
 
@@ -284,13 +285,171 @@ namespace
     {
         vec.insert(vec.end(), s, s + size);
     }
+
+    ssize_t socketReadSomeImpl(int socket, char *buffer, size_t size,
+            size_t timeoutMsec)
+    {
+        struct timeval tv = {static_cast<time_t>(timeoutMsec / 1000),
+            static_cast<__suseconds_t>((timeoutMsec % 1000) * 1000)};
+        int result = setsockopt(socket, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+
+        if (result != 0)
+        {
+            return result;
+        }
+
+        pollfd pfd;
+
+        pfd.fd = socket;
+        pfd.events = POLLIN;
+
+        result = ::poll(&pfd, 1, timeoutMsec);
+        if (result > 0)
+        {
+            return recv(socket, buffer, size, MSG_DONTWAIT);
+        }
+        else
+        {
+            return result;
+        }
+    }
+
+    size_t socketReadSome(int socket, boost::asio::mutable_buffer buffer,
+            const boost::posix_time::time_duration &timeout,
+            boost::system::error_code &ec)
+    {
+        size_t bytesRecv = 0;
+        size_t timeoutMsec = timeout.total_milliseconds();
+
+        for(;;)
+        {
+            ssize_t result = socketReadSomeImpl(socket,
+                    boost::asio::buffer_cast<char *>(buffer) + bytesRecv,
+                    boost::asio::buffer_size(buffer) - bytesRecv, timeoutMsec);
+
+            if (result < 0)
+            {
+                if (errno == EINTR)
+                {
+                    continue;
+                }
+                else
+                {
+                    ec = boost::system::error_code(errno,
+                            boost::asio::error::get_system_category());
+                    break;
+                }
+            }
+            else if (result == 0)
+            {
+                // boost::asio::error::connection_reset();
+                // boost::asio::error::eof
+                ec = boost::asio::error::eof;
+                break;
+            }
+            else
+            {
+                bytesRecv += result;
+                break;
+            }
+        }
+
+        return bytesRecv;
+    }
+
+
+    ssize_t socketWriteImpl(int socket, const char *buffer, size_t size,
+            size_t timeoutMsec)
+    {
+        struct timeval tv = {static_cast<time_t>(timeoutMsec / 1000),
+            static_cast<__suseconds_t>((timeoutMsec % 1000) * 1000)};
+        int result = setsockopt(socket, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+
+        if (result != 0)
+        {
+            return result;
+        }
+
+        pollfd pfd;
+
+        pfd.fd = socket;
+        pfd.events = POLLOUT;
+
+        result = ::poll(&pfd, 1, timeoutMsec);
+        if (result > 0)
+        {
+            return send(socket, buffer, size, 0);
+        }
+        else
+        {
+            return result;
+        }
+    }
+
+    size_t socketWrite(int socket, boost::asio::const_buffer buffer,
+            const boost::posix_time::time_duration &timeout,
+            boost::system::error_code &ec)
+    {
+        size_t bytesSend = 0;
+        size_t timeoutMsec = timeout.total_milliseconds();
+
+        while(bytesSend < boost::asio::buffer_size(buffer))
+        {
+            ssize_t result = socketWriteImpl(socket,
+                    boost::asio::buffer_cast<const char *>(buffer) + bytesSend,
+                    boost::asio::buffer_size(buffer) - bytesSend, timeoutMsec);
+
+            if (result < 0)
+            {
+                if (errno == EINTR)
+                {
+                    continue;
+                }
+                else
+                {
+                    ec = boost::system::error_code(errno,
+                            boost::asio::error::get_system_category());
+                    break;
+                }
+            }
+            else if (result == 0)
+            {
+                    // boost::asio::error::connection_reset();
+                    // boost::asio::error::eof
+                    ec = boost::asio::error::eof;
+                    break;
+            }
+            else
+            {
+                bytesSend += result;
+            }
+        }
+
+        return bytesSend;
+    }
+
+    size_t socketWrite(int socket, const std::vector<boost::asio::const_buffer> &buffers,
+            const boost::posix_time::time_duration &timeout,
+            boost::system::error_code &ec)
+    {
+        size_t bytesSend = 0;
+        for(const auto &buffer: buffers)
+        {
+            bytesSend += socketWrite(socket, buffer, timeout, ec);
+
+            if (ec)
+                break;
+        }
+
+        return bytesSend;
+    }
 }
 
 namespace redisclient {
 
-RedisClientImpl::RedisClientImpl(boost::asio::io_service &ioService)
-    : strand(ioService), socket(ioService), bufSize(0),
-    subscribeSeq(0), state(State::Unconnected)
+RedisClientImpl::RedisClientImpl(boost::asio::io_service &ioService_)
+    : ioService(ioService_), strand(ioService), socket(ioService),
+    bufSize(0),subscribeSeq(0), state(State::Unconnected)
 {
 }
 
@@ -306,7 +465,9 @@ void RedisClientImpl::close() noexcept
         boost::system::error_code ignored_ec;
 
         msgHandlers.clear();
+        decltype(handlers)().swap(handlers);
 
+        socket.cancel(ignored_ec);
         socket.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored_ec);
         socket.close(ignored_ec);
 
@@ -433,20 +594,20 @@ void RedisClientImpl::asyncWrite(const boost::system::error_code &ec, size_t)
 }
 
 void RedisClientImpl::handleAsyncConnect(const boost::system::error_code &ec,
-                                         const std::function<void(bool, const std::string &)> &handler)
+            std::function<void(boost::system::error_code)> handler)
 {
     if( !ec )
     {
         boost::system::error_code ec2; // Ignore errors in set_option
         socket.set_option(boost::asio::ip::tcp::no_delay(true), ec2);
         state = State::Connected;
-        handler(true, std::string());
+        handler(ec);
         processMessage();
     }
     else
     {
         state = State::Unconnected;
-        handler(false, ec.message());
+        handler(ec);
     }
 }
 
@@ -469,11 +630,12 @@ std::vector<char> RedisClientImpl::makeCommand(const std::deque<RedisBuffer> &it
 
     return result;
 }
-RedisValue RedisClientImpl::doSyncCommand(const std::deque<RedisBuffer> &command)
+RedisValue RedisClientImpl::doSyncCommand(const std::deque<RedisBuffer> &command,
+        const boost::posix_time::time_duration &timeout,
+        boost::system::error_code &ec)
 {
-    boost::system::error_code ec;
     std::vector<char> data = makeCommand(command);
-    boost::asio::write(socket, boost::asio::buffer(data), boost::asio::transfer_all(), ec);
+    socketWrite(socket.native_handle(), boost::asio::buffer(data), timeout, ec);
 
     if( ec )
     {
@@ -481,12 +643,13 @@ RedisValue RedisClientImpl::doSyncCommand(const std::deque<RedisBuffer> &command
         return RedisValue();
     }
 
-    return syncReadResponse();
+    return syncReadResponse(timeout, ec);
 }
 
-RedisValue RedisClientImpl::doSyncCommand(const std::deque<std::deque<RedisBuffer>> &commands)
+RedisValue RedisClientImpl::doSyncCommand(const std::deque<std::deque<RedisBuffer>> &commands,
+        const boost::posix_time::time_duration &timeout,
+        boost::system::error_code &ec)
 {
-    boost::system::error_code ec;
     std::vector<std::vector<char>> data;
     std::vector<boost::asio::const_buffer> buffers;
 
@@ -495,11 +658,11 @@ RedisValue RedisClientImpl::doSyncCommand(const std::deque<std::deque<RedisBuffe
 
     for(const auto &command: commands)
     {
-        data.push_back(std::move(makeCommand(command)));
+        data.push_back(makeCommand(command));
         buffers.push_back(boost::asio::buffer(data.back()));
     }
 
-    boost::asio::write(socket, buffers, boost::asio::transfer_all(), ec);
+    socketWrite(socket.native_handle(), buffers, timeout, ec);
 
     if( ec )
     {
@@ -511,19 +674,31 @@ RedisValue RedisClientImpl::doSyncCommand(const std::deque<std::deque<RedisBuffe
 
     for(size_t i = 0; i < commands.size(); ++i)
     {
-        responses.push_back(std::move(syncReadResponse()));
+        responses.push_back(syncReadResponse(timeout, ec));
+
+        if (ec)
+        {
+            errorHandler(ec.message());
+            return RedisValue();
+        }
     }
 
     return RedisValue(std::move(responses));
 }
 
-RedisValue RedisClientImpl::syncReadResponse()
+RedisValue RedisClientImpl::syncReadResponse(
+        const boost::posix_time::time_duration &timeout,
+        boost::system::error_code &ec)
 {
     for(;;)
     {
         if (bufSize == 0)
         {
-            bufSize = socket.read_some(boost::asio::buffer(buf));
+            bufSize = socketReadSome(socket.native_handle(),
+                    boost::asio::buffer(buf), timeout, ec);
+
+            if (ec)
+                return RedisValue();
         }
 
         for(size_t pos = 0; pos < bufSize;)
@@ -570,7 +745,7 @@ void RedisClientImpl::asyncRead(const boost::system::error_code &ec, const size_
 {
     if( ec || size == 0 )
     {
-        if( state != State::Closed )
+        if (ec != boost::asio::error::operation_aborted)
         {
             errorHandler(ec.message());
         }
@@ -583,7 +758,7 @@ void RedisClientImpl::asyncRead(const boost::system::error_code &ec, const size_
 
         if( result.second == RedisParser::Completed )
         {
-            doProcessMessage(std::move(redisParser.result()));
+            doProcessMessage(redisParser.result());
         }
         else if( result.second == RedisParser::Incompleted )
         {
@@ -672,8 +847,8 @@ void RedisClientImpl::singleShotSubscribe(
     }
 }
 
-void RedisClientImpl::unsubscribe(const std::string &command, 
-                                  size_t handleId, 
+void RedisClientImpl::unsubscribe(const std::string &command,
+                                  size_t handleId,
                                   const std::string &channel,
                                   std::function<void(RedisValue)> handler)
 {
@@ -1166,10 +1341,14 @@ long int RedisParser::bufToLong(const char *str, size_t size)
 
 
 
+
 namespace redisclient {
 
 RedisSyncClient::RedisSyncClient(boost::asio::io_service &ioService)
-    : pimpl(std::make_shared<RedisClientImpl>(ioService))
+    : pimpl(std::make_shared<RedisClientImpl>(ioService)),
+    connectTimeout(boost::posix_time::hours(365 * 24)),
+    commandTimeout(boost::posix_time::hours(365 * 24)),
+    tcpNoDelay(true), tcpKeepAlive(false)
 {
     pimpl->errorHandler = std::bind(&RedisClientImpl::defaulErrorHandler, std::placeholders::_1);
 }
@@ -1179,68 +1358,159 @@ RedisSyncClient::~RedisSyncClient()
     pimpl->close();
 }
 
-bool RedisSyncClient::connect(const boost::asio::ip::tcp::endpoint &endpoint,
-        std::string &errmsg)
+void RedisSyncClient::connect(const boost::asio::ip::tcp::endpoint &endpoint)
 {
     boost::system::error_code ec;
 
+    connect(endpoint, ec);
+    detail::throwIfError(ec);
+}
+
+void RedisSyncClient::connect(const boost::asio::ip::tcp::endpoint &endpoint,
+    boost::system::error_code &ec)
+{
     pimpl->socket.open(endpoint.protocol(), ec);
 
-    if( !ec )
-    {
+    if (!ec && tcpNoDelay)
         pimpl->socket.set_option(boost::asio::ip::tcp::no_delay(true), ec);
 
-        if( !ec )
+    // TODO keep alive option
+
+    // boost asio does not support `connect` with timeout
+    int socket = pimpl->socket.native_handle();
+    struct sockaddr_in addr;
+
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(endpoint.port());
+    addr.sin_addr.s_addr = inet_addr(endpoint.address().to_string().c_str());
+
+    // Set non-blocking
+    int arg = 0;
+    if ((arg = fcntl(socket, F_GETFL, NULL)) < 0)
+    {
+        ec = boost::system::error_code(errno,
+                boost::asio::error::get_system_category());
+        return;
+    }
+
+    arg |= O_NONBLOCK;
+
+    if (fcntl(socket, F_SETFL, arg) < 0)
+    {
+        ec = boost::system::error_code(errno,
+                boost::asio::error::get_system_category());
+        return;
+    }
+
+    // connecting
+    int result = ::connect(socket, reinterpret_cast<sockaddr*>(&addr), sizeof(addr));
+    if (result < 0)
+    {
+        if (errno == EINPROGRESS)
         {
-            pimpl->socket.connect(endpoint, ec);
+            for(;;)
+            {
+                //selecting
+                pollfd pfd;
+                pfd.fd = socket;
+                pfd.events = POLLOUT;
+
+                result = ::poll(&pfd, 1, connectTimeout.total_milliseconds());
+
+                if (result < 0)
+                {
+                    if (errno == EINTR)
+                    {
+                        // try again
+                        continue;
+                    }
+                    else
+                    {
+                        ec = boost::system::error_code(errno,
+                                boost::asio::error::get_system_category());
+                        return;
+                    }
+                }
+                else if (result > 0)
+                {
+                    // check for error
+                    int valopt;
+                    socklen_t optlen = sizeof(valopt);
+
+
+                    if (getsockopt(socket, SOL_SOCKET, SO_ERROR,
+                                reinterpret_cast<void *>(&valopt), &optlen ) < 0)
+                    {
+                        ec = boost::system::error_code(errno,
+                                boost::asio::error::get_system_category());
+                        return;
+                    }
+
+                    if (valopt)
+                    {
+                        ec = boost::system::error_code(valopt,
+                                boost::asio::error::get_system_category());
+                        return;
+                    }
+
+                    break;
+                }
+                else
+                {
+                    // timeout
+                    ec = boost::system::error_code(ETIMEDOUT,
+                            boost::asio::error::get_system_category());
+                    return;
+                }
+            }
+        }
+        else
+        {
+            ec = boost::system::error_code(errno,
+                    boost::asio::error::get_system_category());
+            return;
         }
     }
 
-    if( !ec )
+    if ((arg = fcntl(socket, F_GETFL, NULL)) < 0)
     {
+        ec = boost::system::error_code(errno,
+                boost::asio::error::get_system_category());
+        return;
+    }
+
+    arg &= (~O_NONBLOCK); 
+
+    if (fcntl(socket, F_SETFL, arg) < 0)
+    {
+        ec = boost::system::error_code(errno,
+                boost::asio::error::get_system_category());
+    }
+
+    if (!ec)
         pimpl->state = State::Connected;
-        return true;
-    }
-    else
-    {
-        errmsg = ec.message();
-        return false;
-    }
-}
-
-bool RedisSyncClient::connect(const boost::asio::ip::address &address,
-        unsigned short port,
-        std::string &errmsg)
-{
-    boost::asio::ip::tcp::endpoint endpoint(address, port);
-
-    return connect(endpoint, errmsg);
 }
 
 #ifdef BOOST_ASIO_HAS_LOCAL_SOCKETS
 
-bool RedisSyncClient::connect(const boost::asio::local::stream_protocol::endpoint &endpoint,
-        std::string &errmsg)
+void RedisSyncClient::connect(const boost::asio::local::stream_protocol::endpoint &endpoint)
 {
     boost::system::error_code ec;
 
+    connect(endpoint, ec);
+    detail::throwIfError(ec);
+}
+
+void RedisSyncClient::connect(const boost::asio::local::stream_protocol::endpoint &endpoint,
+        boost::system::error_code &ec)
+{
     pimpl->socket.open(endpoint.protocol(), ec);
 
-    if( !ec )
-    {
+    if (!ec)
         pimpl->socket.connect(endpoint, ec);
-    }
 
-    if( !ec )
-    {
+    if (!ec)
         pimpl->state = State::Connected;
-        return true;
-    }
-    else
-    {
-        errmsg = ec.message();
-        return false;
-    }
 }
 
 #endif
@@ -1253,11 +1523,21 @@ void RedisSyncClient::installErrorHandler(
 
 RedisValue RedisSyncClient::command(std::string cmd, std::deque<RedisBuffer> args)
 {
+    boost::system::error_code ec;
+    RedisValue result = command(std::move(cmd), std::move(args), ec);
+
+    detail::throwIfError(ec);
+    return result;
+}
+
+RedisValue RedisSyncClient::command(std::string cmd, std::deque<RedisBuffer> args,
+            boost::system::error_code &ec)
+{
     if(stateValid())
     {
         args.push_front(std::move(cmd));
 
-        return pimpl->doSyncCommand(args);
+        return pimpl->doSyncCommand(args, commandTimeout, ec);
     }
     else
     {
@@ -1273,9 +1553,19 @@ Pipeline RedisSyncClient::pipelined()
 
 RedisValue RedisSyncClient::pipelined(std::deque<std::deque<RedisBuffer>> commands)
 {
+    boost::system::error_code ec;
+    RedisValue result = pipelined(std::move(commands), ec);
+
+    detail::throwIfError(ec);
+    return result;
+}
+
+RedisValue RedisSyncClient::pipelined(std::deque<std::deque<RedisBuffer>> commands,
+        boost::system::error_code &ec)
+{
     if(stateValid())
     {
-        return pimpl->doSyncCommand(commands);
+        return pimpl->doSyncCommand(commands, commandTimeout, ec);
     }
     else
     {
@@ -1304,6 +1594,33 @@ bool RedisSyncClient::stateValid() const
     }
 
     return true;
+}
+
+RedisSyncClient &RedisSyncClient::setConnectTimeout(
+        const boost::posix_time::time_duration &timeout)
+{
+    connectTimeout = timeout;
+    return *this;
+}
+
+
+RedisSyncClient &RedisSyncClient::setCommandTimeout(
+        const boost::posix_time::time_duration &timeout)
+{
+    commandTimeout = timeout;
+    return *this;
+}
+
+RedisSyncClient &RedisSyncClient::setTcpNoDelay(bool enable)
+{
+    tcpNoDelay = enable;
+    return *this;
+}
+
+RedisSyncClient &RedisSyncClient::setTcpKeepAlive(bool enable)
+{
+    tcpKeepAlive = enable;
+    return *this;
 }
 
 }

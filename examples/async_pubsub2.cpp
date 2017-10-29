@@ -42,25 +42,26 @@ int main(int, char **)
 {
     boost::asio::ip::address address = boost::asio::ip::address::from_string("127.0.0.1");
     const unsigned short port = 6379;
+    boost::asio::ip::tcp::endpoint endpoint(address, port);
 
     boost::asio::io_service ioService;
     redisclient::RedisAsyncClient publisher(ioService);
     redisclient::RedisAsyncClient subscriber(ioService);
     Client client(ioService);
 
-    publisher.asyncConnect(address, port, [&](bool status, const std::string &err)
+    publisher.connect(endpoint, [&](boost::system::error_code ec)
     {
-        if( !status )
+        if(ec)
         {
-            std::cerr << "Can't connect to redis: " << err << std::endl;
+            std::cerr << "Can't connect to redis: " << ec.message() << std::endl;
         }
         else
         {
-            subscriber.asyncConnect(address, port, [&](bool status, const std::string &err)
+            subscriber.connect(endpoint, [&](boost::system::error_code ec)
             {
-                if( !status )
+                if( ec )
                 {
-                    std::cerr << "Can't connect to redis: " << err << std::endl;
+                    std::cerr << "Can't connect to redis: " << ec.message() << std::endl;
                 }
                 else
                 {

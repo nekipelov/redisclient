@@ -15,7 +15,7 @@ public:
         : ioService(ioService), redisClient(redisClient)
     {}
 
-    void onConnect(bool connected, const std::string &errorMessage);
+    void onConnect(boost::system::error_code ec);
     void onSet(const redisclient::RedisValue &value);
     void onGet(const redisclient::RedisValue &value);
     void stop();
@@ -25,11 +25,11 @@ private:
     redisclient::RedisAsyncClient &redisClient;
 };
 
-void Worker::onConnect(bool connected, const std::string &errorMessage)
+void Worker::onConnect(boost::system::error_code ec)
 {
-    if( !connected )
+    if(ec)
     {
-        std::cerr << "Can't connect to redis: " << errorMessage;
+        std::cerr << "Can't connect to redis: " << ec.message() << "\n";
     }
     else
     {
@@ -67,16 +67,16 @@ void Worker::onGet(const redisclient::RedisValue &value)
 
 int main(int, char **)
 {
-    const char *address = "127.0.0.1";
+    boost::asio::ip::address address = boost::asio::ip::address::from_string("127.0.0.1");
     const int port = 6379;
+    boost::asio::ip::tcp::endpoint endpoint(address, port);
 
     boost::asio::io_service ioService;
     redisclient::RedisAsyncClient client(ioService);
     Worker worker(ioService, client);
-    boost::asio::ip::tcp::endpoint endpoint(boost::asio::ip::address::from_string(address), port);
 
-    client.asyncConnect(endpoint, std::bind(&Worker::onConnect, &worker,
-                std::placeholders::_1, std::placeholders::_2));
+    client.connect(endpoint, std::bind(&Worker::onConnect, &worker,
+                std::placeholders::_1));
 
     ioService.run();
 
