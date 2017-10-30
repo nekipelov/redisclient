@@ -403,6 +403,7 @@ RedisValue RedisClientImpl::doSyncCommand(const std::deque<RedisBuffer> &command
 
     if( ec )
     {
+        close();
         errorHandler(ec.message());
         return RedisValue();
     }
@@ -430,6 +431,7 @@ RedisValue RedisClientImpl::doSyncCommand(const std::deque<std::deque<RedisBuffe
 
     if( ec )
     {
+        close();
         errorHandler(ec.message());
         return RedisValue();
     }
@@ -442,6 +444,7 @@ RedisValue RedisClientImpl::doSyncCommand(const std::deque<std::deque<RedisBuffe
 
         if (ec)
         {
+            close();
             errorHandler(ec.message());
             return RedisValue();
         }
@@ -462,7 +465,10 @@ RedisValue RedisClientImpl::syncReadResponse(
                     boost::asio::buffer(buf), timeout, ec);
 
             if (ec)
+            {
+                close();
                 return RedisValue();
+            }
         }
 
         for(size_t pos = 0; pos < bufSize;)
