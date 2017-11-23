@@ -24,9 +24,20 @@ RedisSyncClient::RedisSyncClient(boost::asio::io_service &ioService)
     pimpl->errorHandler = std::bind(&RedisClientImpl::defaulErrorHandler, std::placeholders::_1);
 }
 
+RedisSyncClient::RedisSyncClient(RedisSyncClient &&other)
+    : pimpl(std::move(other.pimpl)),
+    connectTimeout(std::move(other.connectTimeout)),
+    commandTimeout(std::move(other.commandTimeout)),
+    tcpNoDelay(std::move(other.tcpNoDelay)),
+    tcpKeepAlive(std::move(other.tcpKeepAlive))
+{
+}
+
+
 RedisSyncClient::~RedisSyncClient()
 {
-    pimpl->close();
+    if (pimpl)
+        pimpl->close();
 }
 
 void RedisSyncClient::connect(const boost::asio::ip::tcp::endpoint &endpoint)
@@ -185,6 +196,17 @@ void RedisSyncClient::connect(const boost::asio::local::stream_protocol::endpoin
 }
 
 #endif
+
+bool RedisSyncClient::isConnected() const
+{
+    return pimpl->getState() == State::Connected ||
+            pimpl->getState() == State::Subscribed;
+}
+
+void RedisSyncClient::disconnect()
+{
+    pimpl->close();
+}
 
 void RedisSyncClient::installErrorHandler(
         std::function<void(const std::string &)> handler)

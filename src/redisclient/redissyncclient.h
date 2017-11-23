@@ -28,6 +28,7 @@ public:
     typedef RedisClientImpl::State State;
 
     REDIS_CLIENT_DECL RedisSyncClient(boost::asio::io_service &ioService);
+    REDIS_CLIENT_DECL RedisSyncClient(RedisSyncClient &&other);
     REDIS_CLIENT_DECL ~RedisSyncClient();
 
     // Connect to redis server
@@ -47,6 +48,12 @@ public:
     REDIS_CLIENT_DECL void connect(
             const boost::asio::local::stream_protocol::endpoint &endpoint);
 #endif
+
+    // Return true if is connected to redis.
+    REDIS_CLIENT_DECL bool isConnected() const;
+
+    // disconnect from redis
+    REDIS_CLIENT_DECL void disconnect();
 
     // Set custom error handler.
     REDIS_CLIENT_DECL void installErrorHandler(
@@ -74,11 +81,13 @@ public:
     // Return connection state. See RedisClientImpl::State.
     REDIS_CLIENT_DECL State state() const;
 
-    RedisSyncClient &setConnectTimeout(const boost::posix_time::time_duration &timeout);
-    RedisSyncClient &setCommandTimeout(const boost::posix_time::time_duration &timeout);
+    REDIS_CLIENT_DECL RedisSyncClient &setConnectTimeout(
+            const boost::posix_time::time_duration &timeout);
+    REDIS_CLIENT_DECL RedisSyncClient &setCommandTimeout(
+            const boost::posix_time::time_duration &timeout);
 
-    RedisSyncClient &setTcpNoDelay(bool enable);
-    RedisSyncClient &setTcpKeepAlive(bool enable);
+    REDIS_CLIENT_DECL RedisSyncClient &setTcpNoDelay(bool enable);
+    REDIS_CLIENT_DECL RedisSyncClient &setTcpKeepAlive(bool enable);
 
 protected:
     REDIS_CLIENT_DECL bool stateValid() const;

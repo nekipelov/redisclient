@@ -60,7 +60,7 @@ std::vector<RedisValue> RedisValue::toArray() const
 std::vector<RedisValue> &RedisValue::getArray()
 {
     assert(isArray());
-    return boost::get<std::vector<RedisValue> &>(value);
+    return boost::get<std::vector<RedisValue>>(value);
 }
 
 std::string RedisValue::toString() const

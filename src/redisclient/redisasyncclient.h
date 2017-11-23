@@ -48,7 +48,6 @@ public:
 #endif
 
     // Return true if is connected to redis.
-    // Deprecated: use state() == RedisAsyncClisend::State::Connected.
     REDIS_CLIENT_DECL bool isConnected() const;
 
     // Return connection state. See RedisClientImpl::State.

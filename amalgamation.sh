@@ -6,6 +6,7 @@ HEADERS="src/redisclient/version.h \
     src/redisclient/redisvalue.h \
     src/redisclient/redisparser.h \
     src/redisclient/impl/redisclientimpl.h \
+    src/redisclient/impl/throwerror.h \
     src/redisclient/redisasyncclient.h \
     src/redisclient/redissyncclient.h \
     src/redisclient/pipeline.h"

@@ -441,6 +441,34 @@ inline std::string to_string(RedisClientImpl::State state)
 
 
 
+#pragma once
+
+#include <boost/system/error_code.hpp>
+#include <boost/system/system_error.hpp>
+
+namespace redisclient
+{
+
+namespace detail
+{
+
+inline void throwError(const boost::system::error_code &ec)
+{
+    boost::system::system_error error(ec);
+    throw error;
+}
+
+inline void throwIfError(const boost::system::error_code &ec)
+{
+    if (ec)
+    {
+        throwError(ec);
+    }
+}
+
+}
+
+}
 /*
  * Copyright (C) Alex Nekipelov (alex@nekipelov.net)
  * License: MIT
@@ -491,7 +519,6 @@ public:
 
 
     // Return true if is connected to redis.
-    // Deprecated: use state() == RedisAsyncClisend::State::Connected.
      bool isConnected() const;
 
     // Return connection state. See RedisClientImpl::State.
@@ -589,6 +616,7 @@ public:
     typedef RedisClientImpl::State State;
 
      RedisSyncClient(boost::asio::io_service &ioService);
+     RedisSyncClient(RedisSyncClient &&other);
      ~RedisSyncClient();
 
     // Connect to redis server
@@ -608,6 +636,12 @@ public:
      void connect(
             const boost::asio::local::stream_protocol::endpoint &endpoint);
 
+
+    // Return true if is connected to redis.
+     bool isConnected() const;
+
+    // disconnect from redis
+     void disconnect();
 
     // Set custom error handler.
      void installErrorHandler(
@@ -635,11 +669,13 @@ public:
     // Return connection state. See RedisClientImpl::State.
      State state() const;
 
-    RedisSyncClient &setConnectTimeout(const boost::posix_time::time_duration &timeout);
-    RedisSyncClient &setCommandTimeout(const boost::posix_time::time_duration &timeout);
+     RedisSyncClient &setConnectTimeout(
+            const boost::posix_time::time_duration &timeout);
+     RedisSyncClient &setCommandTimeout(
+            const boost::posix_time::time_duration &timeout);
 
-    RedisSyncClient &setTcpNoDelay(bool enable);
-    RedisSyncClient &setTcpKeepAlive(bool enable);
+     RedisSyncClient &setTcpNoDelay(bool enable);
+     RedisSyncClient &setTcpKeepAlive(bool enable);
 
 protected:
      bool stateValid() const;
