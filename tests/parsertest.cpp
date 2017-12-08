@@ -151,7 +151,8 @@ BOOST_FIXTURE_TEST_CASE(test_string_empty_array_2, ParserFixture)
 
     BOOST_CHECK_EQUAL(value.isError(), false);
     BOOST_CHECK_EQUAL(value.isOk(), true);
-    BOOST_CHECK_EQUAL(value.isArray(), true);
+    BOOST_CHECK_EQUAL(value.isArray(), false);
+    BOOST_CHECK_EQUAL(value.isNull(), true);
     BOOST_CHECK(value.toArray() == std::vector<RedisValue>());
 }
 
@@ -215,7 +216,7 @@ BOOST_FIXTURE_TEST_CASE(test_parser_by_parts, ParserFixture)
     parseByPartsTest("$0\r\n\r\n", "");
     parseByPartsTest("$-1\r\n",  RedisValue());
     parseByPartsTest("*0\r\n", std::vector<RedisValue>());
-    parseByPartsTest("*-1\r\n", std::vector<RedisValue>());
+    parseByPartsTest("*-1\r\n", RedisValue());
 
     {
         std::vector<RedisValue> array;
