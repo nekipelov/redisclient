@@ -9,6 +9,10 @@
 #include <sstream>
 #include <assert.h>
 
+#ifdef DEBUG_REDIS_PARSER
+#include <iostream>
+#endif
+
 #include "redisclient/redisparser.h"
 
 namespace redisclient {
@@ -38,6 +42,9 @@ std::pair<size_t, RedisParser::ParseResult> RedisParser::parseChunk(const char *
     while(position < size)
     {
         char c = ptr[position++];
+#ifdef DEBUG_REDIS_PARSER
+        std::cerr << "state: " << state << ", c: " << c << "\n";
+#endif
 
         switch(state)
         {
@@ -263,7 +270,12 @@ std::pair<size_t, RedisParser::ParseResult> RedisParser::parseChunk(const char *
                     int64_t arraySize = bufToLong(buf.data(), buf.size());
                     std::vector<RedisValue> array;
 
-                    if( arraySize == -1 || arraySize == 0)
+                    if( arraySize == -1 )
+                    {
+                        state = Start;
+                        redisValue = RedisValue();  // Nil value
+                    }
+                    else if( arraySize == 0 )
                     {
                         state = Start;
                         redisValue = RedisValue(std::move(array));  // Empty array
