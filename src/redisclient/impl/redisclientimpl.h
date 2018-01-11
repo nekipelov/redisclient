@@ -12,6 +12,7 @@
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/local/stream_protocol.hpp>
 #include <boost/asio/strand.hpp>
+#include <boost/asio/io_service.hpp>
 
 #include <string>
 #include <vector>
@@ -53,8 +54,8 @@ public:
         std::function<void(std::vector<char> msg)> msgHandler,
         std::function<void(RedisValue)> handler);
 
-    REDIS_CLIENT_DECL void unsubscribe(const std::string &command, 
-        size_t handle_id, const std::string &channel, 
+    REDIS_CLIENT_DECL void unsubscribe(const std::string &command,
+        size_t handle_id, const std::string &channel,
         std::function<void(RedisValue)> handler);
 
     REDIS_CLIENT_DECL void close() noexcept;
@@ -90,7 +91,7 @@ public:
     inline void post(const Handler &handler);
 
     boost::asio::io_service &ioService;
-    boost::asio::strand strand;
+    boost::asio::io_service::strand strand;
     boost::asio::generic::stream_protocol::socket socket;
     RedisParser redisParser;
     boost::array<char, 4096> buf;
