@@ -2,6 +2,7 @@
 #include <iostream>
 #include <functional>
 #include <boost/asio/ip/address.hpp>
+#include <boost/asio/deadline_timer.hpp>
 
 #include <redisclient/redisasyncclient.h>
 
