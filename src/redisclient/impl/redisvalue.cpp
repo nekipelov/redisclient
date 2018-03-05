@@ -57,12 +57,6 @@ std::vector<RedisValue> RedisValue::toArray() const
     return castTo< std::vector<RedisValue> >();
 }
 
-std::vector<RedisValue> &RedisValue::getArray()
-{
-    assert(isArray());
-    return boost::get<std::vector<RedisValue>>(value);
-}
-
 std::string RedisValue::toString() const
 {
     const std::vector<char> &buf = toByteArray();
@@ -162,6 +156,30 @@ bool RedisValue::isByteArray() const
 bool RedisValue::isArray() const
 {
     return typeEq< std::vector<RedisValue> >();
+}
+
+std::vector<char> &RedisValue::getByteArray()
+{
+    assert(isByteArray());
+    return boost::get<std::vector<char>>(value);
+}
+
+const std::vector<char> &RedisValue::getByteArray() const
+{
+    assert(isByteArray());
+    return boost::get<std::vector<char>>(value);
+}
+
+std::vector<RedisValue> &RedisValue::getArray()
+{
+    assert(isArray());
+    return boost::get<std::vector<RedisValue>>(value);
+}
+
+const std::vector<RedisValue> &RedisValue::getArray() const
+{
+    assert(isArray());
+    return boost::get<std::vector<RedisValue>>(value);
 }
 
 bool RedisValue::operator == (const RedisValue &rhs) const

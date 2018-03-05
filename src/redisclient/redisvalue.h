@@ -57,7 +57,6 @@ public:
     // Return true if value is a error
     REDIS_CLIENT_DECL bool isError() const;
 
-
     // Return true if this is a null.
     REDIS_CLIENT_DECL bool isNull() const;
     // Return true if type is an int
@@ -69,10 +68,17 @@ public:
     // Return true if type is a string/byte array. Alias for isByteArray().
     REDIS_CLIENT_DECL bool isString() const;
 
+    // Methods for increasing perfomance
+    // Throws: boost::bad_get if the type does not match
+    REDIS_CLIENT_DECL std::vector<char> &getByteArray();
+    REDIS_CLIENT_DECL const std::vector<char> &getByteArray() const;
+    REDIS_CLIENT_DECL std::vector<RedisValue> &getArray();
+    REDIS_CLIENT_DECL const std::vector<RedisValue> &getArray() const;
+
+
     REDIS_CLIENT_DECL bool operator == (const RedisValue &rhs) const;
     REDIS_CLIENT_DECL bool operator != (const RedisValue &rhs) const;
 
-    REDIS_CLIENT_DECL std::vector<RedisValue> &getArray();
 protected:
     template<typename T>
      T castTo() const;
