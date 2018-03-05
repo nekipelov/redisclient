@@ -6,13 +6,16 @@ set(hdrs config.h
          redissyncclient.h
          redisvalue.h
          version.h
-         impl/redisclientimpl.h)
+         impl/redisclientimpl.h
+         impl/throwerror.h
+)
 set(srcs impl/pipeline.cpp
          impl/redisasyncclient.cpp
          impl/redisclientimpl.cpp
          impl/redisparser.cpp
          impl/redissyncclient.cpp
-         impl/redisvalue.cpp)
+         impl/redisvalue.cpp
+)
 
 if (HEADER_ONLY)
   RedisClientHeaderLibrary(RedisClient HEADERS ${hdrs} ${srcs} WITH_INSTALL)
