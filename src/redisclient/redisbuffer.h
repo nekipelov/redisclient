@@ -12,7 +12,7 @@
 #include <string>
 #include <vector>
 
-#include "config.h"
+#include "redisclient/config.h"
 
 namespace redisclient {
 

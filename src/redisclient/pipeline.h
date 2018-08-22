@@ -7,8 +7,8 @@
 
 #include <deque>
 
-#include "redisbuffer.h"
-#include "config.h"
+#include "redisclient/redisbuffer.h"
+#include "redisclient/config.h"
 
 namespace redisclient
 {

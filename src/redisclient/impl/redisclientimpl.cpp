@@ -10,7 +10,7 @@
 
 #include <algorithm>
 
-#include "redisclientimpl.h"
+#include "redisclient/impl/redisclientimpl.h"
 
 namespace
 {
