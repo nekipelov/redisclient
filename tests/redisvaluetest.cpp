@@ -2,7 +2,7 @@
 #include <string.h>
 #include <limits>
 
-#include <redisclient/redisvalue.h>
+#include <redisclient/impl/redisvalue.h>
 
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_MODULE test_RedisParser
