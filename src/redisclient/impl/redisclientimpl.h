@@ -21,9 +21,9 @@
 #include <functional>
 #include <memory>
 
-#include "redisclient/redisparser.h"
-#include "redisclient/redisbuffer.h"
-#include "redisclient/config.h"
+#include "redisclient/impl/redisparser.h"
+#include "redisclient/impl/redisbuffer.h"
+#include "redisclient/impl/config.h"
 
 namespace redisclient {
 

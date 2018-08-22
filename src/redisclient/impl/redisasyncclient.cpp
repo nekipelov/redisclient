@@ -10,7 +10,7 @@
 #include <functional>
 
 #include "redisclient/impl/throwerror.h"
-#include "redisclient/redisasyncclient.h"
+#include "redisclient/impl/redisasyncclient.h"
 
 namespace redisclient {
 
