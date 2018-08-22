@@ -20,8 +20,8 @@ configuration:
 environment:
     MSVC_DEFAULT_OPTIONS: ON
     BOOST_ROOT: C:\Libraries\boost_1_67_0
-    BOOST_LIBRARYDIR_WIN32: C:\Libraries\boost_1_67_0\lib32-msvc-14.0
-    BOOST_LIBRARYDIR_WIN64: C:\Libraries\boost_1_67_0\lib64-msvc-14.0
+    BOOST_LIBRARYDIR_WIN32: C:\Libraries\boost_1_67_0\lib32-msvc-14.1
+    BOOST_LIBRARYDIR_WIN64: C:\Libraries\boost_1_67_0\lib64-msvc-14.1
 
 init:
   - cmd: cmake --version
