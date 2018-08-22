@@ -1,7 +1,7 @@
 #pragma once
 #ifndef REDISCLIENT_REDISCLIENT_H
 #define REDISCLIENT_REDISCLIENT_H
-#include "redisclient/impl/version.h"
+#include "redisclient/version.h"
 #include "redisclient/impl/redisbuffer.h"
 #include "redisclient/impl/redisvalue.h"
 #include "redisclient/impl/redisparser.h"
