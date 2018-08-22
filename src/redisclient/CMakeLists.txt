@@ -1,12 +1,13 @@
-set(hdrs config.h
-         pipeline.h
-         redisasyncclient.h
-         redisbuffer.h
-         redisparser.h
-         redissyncclient.h
-         redisvalue.h
+set(hdrs redisclient.h
          version.h
+         impl/config.h
+         impl/pipeline.h
+         impl/redisasyncclient.h
+         impl/redisbuffer.h
          impl/redisclientimpl.h
+         impl/redisparser.h
+         impl/redissyncclient.h
+         impl/redisvalue.h
          impl/throwerror.h
 )
 set(srcs impl/pipeline.cpp

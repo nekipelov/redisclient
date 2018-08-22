@@ -9,7 +9,7 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/program_options.hpp>
 
-#include <redisclient/redisasyncclient.h>
+#include <redisclient/redisclient.h>
 
 
 struct Config

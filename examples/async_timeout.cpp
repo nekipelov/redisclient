@@ -4,7 +4,7 @@
 #include <boost/asio/ip/address.hpp>
 #include <boost/asio/deadline_timer.hpp>
 
-#include <redisclient/redisasyncclient.h>
+#include <redisclient/redisclient.h>
 
 static const std::string redisKey = "unique-redis-key-example";
 

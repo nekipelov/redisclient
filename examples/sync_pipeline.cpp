@@ -3,8 +3,7 @@
 #include <iostream>
 #include <boost/asio/io_service.hpp>
 #include <boost/asio/ip/address.hpp>
-#include <redisclient/pipeline.h>
-#include <redisclient/redissyncclient.h>
+#include <redisclient/redisclient.h>
 
 int main(int, char **)
 {

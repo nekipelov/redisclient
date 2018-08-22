@@ -8,7 +8,7 @@
 
 #include <string.h>
 
-#include "redisclient/redisvalue.h"
+#include "redisclient/impl/redisvalue.h"
 
 namespace redisclient {
 

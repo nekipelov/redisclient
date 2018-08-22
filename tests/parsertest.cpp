@@ -1,8 +1,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <redisclient/redisparser.h>
-#include <redisclient/redisvalue.h>
+#include <redisclient/impl/redisparser.h>
+#include <redisclient/impl/redisvalue.h>
 
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_MODULE test_RedisParser

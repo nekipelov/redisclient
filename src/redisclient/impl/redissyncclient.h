@@ -14,9 +14,9 @@
 #include <functional>
 
 #include "redisclient/impl/redisclientimpl.h"
-#include "redisbuffer.h"
-#include "redisvalue.h"
-#include "config.h"
+#include "redisclient/impl/redisbuffer.h"
+#include "redisclient/impl/redisvalue.h"
+#include "redisclient/impl/config.h"
 
 namespace redisclient {
 

@@ -1,19 +1,18 @@
 redisclient
 ===========
 
-Build master status: [![Build travis status](https://travis-ci.org/nekipelov/redisclient.svg?branch=master)](https://travis-ci.org/nekipelov/redisclient)
-[![Build appveyor status](https://ci.appveyor.com/api/projects/status/github/nekipelov/redisclient?branch=master)](https://ci.appveyor.com/project/nekipelov/redisclient/branch/master)
+Build master status: [![Build travis status](https://travis-ci.org/jfixemer/redisclient.svg?branch=master)](https://travis-ci.org/jfixemer/redisclient)
+[![Build appveyor status](https://ci.appveyor.com/api/projects/status/github/jfixemer/redisclient?branch=master)](https://ci.appveyor.com/project/jfixemer/redisclient/branch/master)
 
-Build develop status: [![Build travis status](https://travis-ci.org/nekipelov/redisclient.svg?branch=develop)](https://travis-ci.org/nekipelov/redisclient)
-[![Build appveyor status](https://ci.appveyor.com/api/projects/status/github/nekipelov/redisclient?branch=develop)](https://ci.appveyor.com/project/nekipelov/redisclient/branch/develop)
+Build develop status: [![Build travis status](https://travis-ci.org/jfixemer/redisclient.svg?branch=develop)](https://travis-ci.org/jfixemer/redisclient)
+[![Build appveyor status](https://ci.appveyor.com/api/projects/status/github/jfixemer/redisclient?branch=develop)](https://ci.appveyor.com/project/jfixemer/redisclient/branch/develop)
 
-Current version: 1.0.0.
+Current version: 1.0.1.
 
-Boost.asio based Redis-client header-only library. Simple but powerfull.
+Boost.asio based Redis-client header-only library. Simple but powerfull. 
+(TODO[jfixemer-goal]: make work with standalone ASIO)
 
-This version requires С++11 compiler. If you want to use this library with old compiler, use version 0.4: https://github.com/nekipelov/redisclient/tree/v0.4.
-
-Have amalgamated sources. See files in the `amalgamated` directory.
+Requires a С++11 compiler. (TODO: add string_view support, require C++17, perhaps detect and optional?)
 
 Get/set example:
 
@@ -23,7 +22,7 @@ Get/set example:
 #include <iostream>
 #include <boost/asio/io_service.hpp>
 #include <boost/asio/ip/address.hpp>
-#include <redisclient/redissyncclient.h>
+#include <redisclient/redisclient.h>
 
 int main(int, char **)
 {
@@ -77,7 +76,7 @@ Async get/set example:
 #include <boost/asio/io_service.hpp>
 #include <boost/asio/ip/address.hpp>
 
-#include <redisclient/redisasyncclient.h>
+#include <redisclient/redisclient.h>
 
 static const std::string redisKey = "unique-redis-key-example";
 static const std::string redisValue = "unique-redis-value";

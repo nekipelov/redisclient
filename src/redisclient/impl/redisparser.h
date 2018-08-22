@@ -10,8 +10,8 @@
 #include <vector>
 #include <utility>
 
-#include "redisvalue.h"
-#include "config.h"
+#include "redisclient/impl/redisvalue.h"
+#include "redisclient/impl/config.h"
 
 namespace redisclient {
 

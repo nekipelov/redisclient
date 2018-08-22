@@ -4,7 +4,7 @@
 #include <boost/format.hpp>
 #include <boost/asio/deadline_timer.hpp>
 
-#include <redisclient/redisasyncclient.h>
+#include <redisclient/redisclient.h>
 
 using namespace redisclient;
 

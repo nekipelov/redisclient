@@ -3,7 +3,7 @@
 #include <functional>
 #include <boost/asio/ip/address.hpp>
 
-#include <redisclient/redisasyncclient.h>
+#include <redisclient/redisclient.h>
 
 static const std::string channelName = "unique-redis-channel-name-example";
 
