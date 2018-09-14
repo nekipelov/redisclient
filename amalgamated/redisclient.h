@@ -133,7 +133,6 @@ public:
     // Return true if value is a error
      bool isError() const;
 
-
     // Return true if this is a null.
      bool isNull() const;
     // Return true if type is an int
@@ -145,10 +144,17 @@ public:
     // Return true if type is a string/byte array. Alias for isByteArray().
      bool isString() const;
 
+    // Methods for increasing perfomance
+    // Throws: boost::bad_get if the type does not match
+     std::vector<char> &getByteArray();
+     const std::vector<char> &getByteArray() const;
+     std::vector<RedisValue> &getArray();
+     const std::vector<RedisValue> &getArray() const;
+
+
      bool operator == (const RedisValue &rhs) const;
      bool operator != (const RedisValue &rhs) const;
 
-     std::vector<RedisValue> &getArray();
 protected:
     template<typename T>
      T castTo() const;
@@ -303,6 +309,7 @@ private:
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/local/stream_protocol.hpp>
 #include <boost/asio/strand.hpp>
+#include <boost/asio/io_service.hpp>
 
 #include <string>
 #include <vector>
@@ -344,8 +351,8 @@ public:
         std::function<void(std::vector<char> msg)> msgHandler,
         std::function<void(RedisValue)> handler);
 
-     void unsubscribe(const std::string &command, 
-        size_t handle_id, const std::string &channel, 
+     void unsubscribe(const std::string &command,
+        size_t handle_id, const std::string &channel,
         std::function<void(RedisValue)> handler);
 
      void close() noexcept;
@@ -381,7 +388,7 @@ public:
     inline void post(const Handler &handler);
 
     boost::asio::io_service &ioService;
-    boost::asio::strand strand;
+    boost::asio::io_service::strand strand;
     boost::asio::generic::stream_protocol::socket socket;
     RedisParser redisParser;
     boost::array<char, 4096> buf;
