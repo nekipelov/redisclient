@@ -97,7 +97,7 @@ void RedisAsyncClient::command(const std::string &cmd, std::deque<RedisBuffer> a
         args.emplace_front(cmd);
 
         pimpl->post(std::bind(&RedisClientImpl::doAsyncCommand, pimpl,
-                    std::move(pimpl->makeCommand(args)), std::move(handler)));
+                    pimpl->makeCommand(args), std::move(handler)));
     }
 }
 
