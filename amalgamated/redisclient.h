@@ -7,7 +7,7 @@
 
 #define REDISCLIENT_VERSION_H
 
-#define REDIS_CLIENT_VERSION 600 // 0.6.0
+#define REDIS_CLIENT_VERSION 10002 // 1.0.2
 
 
 /*
@@ -746,6 +746,7 @@ public:
     //  result[2];  // value of the key "more"
     //
      RedisValue finish();
+     RedisValue finish(boost::system::error_code &ec);
 
 private:
     std::deque<std::deque<RedisBuffer>> commands;

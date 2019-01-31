@@ -31,6 +31,11 @@ RedisValue Pipeline::finish()
     return client.pipelined(std::move(commands));
 }
 
+RedisValue Pipeline::finish(boost::system::error_code &ec)
+{
+    return client.pipelined(std::move(commands), ec);
+}
+
 }
 
 #endif // REDISCLIENT_PIPELINE_CPP
@@ -133,7 +138,7 @@ void RedisAsyncClient::command(const std::string &cmd, std::deque<RedisBuffer> a
         args.emplace_front(cmd);
 
         pimpl->post(std::bind(&RedisClientImpl::doAsyncCommand, pimpl,
-                    std::move(pimpl->makeCommand(args)), std::move(handler)));
+                    pimpl->makeCommand(args), std::move(handler)));
     }
 }
 
