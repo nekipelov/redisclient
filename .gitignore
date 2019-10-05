@@ -1,5 +1,6 @@
-# vim files
-*.swp
-tags
-build/*
 
+*.vcxproj
+
+*.filters
+
+*.user
