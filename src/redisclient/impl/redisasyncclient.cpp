@@ -103,7 +103,7 @@ void RedisAsyncClient::command(const std::string &cmd, std::deque<RedisBuffer> a
 
 RedisAsyncClient::Handle RedisAsyncClient::subscribe(
         const std::string &channel,
-        std::function<void(std::vector<char> msg)> msgHandler,
+        RedisClientImpl::MsgHandler msgHandler,
         std::function<void(RedisValue)> handler)
 {
     auto handleId = pimpl->subscribe("subscribe", channel, msgHandler, handler);    
@@ -112,7 +112,7 @@ RedisAsyncClient::Handle RedisAsyncClient::subscribe(
 
 RedisAsyncClient::Handle RedisAsyncClient::psubscribe(
     const std::string &pattern,
-    std::function<void(std::vector<char> msg)> msgHandler,
+    RedisClientImpl::MsgHandler msgHandler,
     std::function<void(RedisValue)> handler)
 {
     auto handleId = pimpl->subscribe("psubscribe", pattern, msgHandler, handler);
@@ -130,14 +130,14 @@ void RedisAsyncClient::punsubscribe(const Handle &handle)
 }
 
 void RedisAsyncClient::singleShotSubscribe(const std::string &channel,
-                                           std::function<void(std::vector<char> msg)> msgHandler,
+                                           RedisClientImpl::MsgHandler msgHandler,
                                            std::function<void(RedisValue)> handler)
 {
     pimpl->singleShotSubscribe("subscribe", channel, msgHandler, handler);
 }
 
 void RedisAsyncClient::singleShotPSubscribe(const std::string &pattern,
-    std::function<void(std::vector<char> msg)> msgHandler,
+    RedisClientImpl::MsgHandler msgHandler,
     std::function<void(RedisValue)> handler)
 {
     pimpl->singleShotSubscribe("psubscribe", pattern, msgHandler, handler);

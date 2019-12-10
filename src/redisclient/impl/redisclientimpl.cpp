@@ -276,7 +276,7 @@ void RedisClientImpl::doProcessMessage(RedisValue v)
                 SingleShotHandlersMap::iterator it = singleShotMsgHandlers.find(pattern.toString());
                 if( it != singleShotMsgHandlers.end() )
                 {
-                    strand.post(std::bind(it->second, value.toByteArray()));
+                    strand.post(std::bind(it->second, value.toByteArray(), queueName.toByteArray()));
                     singleShotMsgHandlers.erase(it);
                 }
 
@@ -285,7 +285,7 @@ void RedisClientImpl::doProcessMessage(RedisValue v)
                 for(MsgHandlersMap::iterator handlerIt = pair.first;
                     handlerIt != pair.second; ++handlerIt)
                 {
-                    strand.post(std::bind(handlerIt->second.second, value.toByteArray()));
+                    strand.post(std::bind(handlerIt->second.second, value.toByteArray(), queueName.toByteArray()));
                 }
             }
             else if( handlers.empty() == false &&
@@ -555,7 +555,7 @@ void RedisClientImpl::defaulErrorHandler(const std::string &s)
 size_t RedisClientImpl::subscribe(
     const std::string &command,
     const std::string &channel,
-    std::function<void(std::vector<char> msg)> msgHandler,
+    MsgHandler msgHandler,
     std::function<void(RedisValue)> handler)
 {
     assert(state == State::Connected ||
@@ -586,7 +586,7 @@ size_t RedisClientImpl::subscribe(
 void RedisClientImpl::singleShotSubscribe(
     const std::string &command,
     const std::string &channel,
-    std::function<void(std::vector<char> msg)> msgHandler,
+    MsgHandler msgHandler,
     std::function<void(RedisValue)> handler)
 {
     assert(state == State::Connected ||

@@ -69,12 +69,12 @@ public:
     // when someone publish message on channel. Call unsubscribe 
     // to stop the subscription.
     REDIS_CLIENT_DECL Handle subscribe(const std::string &channelName,
-                                       std::function<void(std::vector<char> msg)> msgHandler,
+                                       RedisClientImpl::MsgHandler  msgHandler,
                                        std::function<void(RedisValue)> handler = &dummyHandler);
 
 
     REDIS_CLIENT_DECL Handle psubscribe(const std::string &pattern,
-                                        std::function<void(std::vector<char> msg)> msgHandler,
+                                        RedisClientImpl::MsgHandler  msgHandler,
                                         std::function<void(RedisValue)> handler = &dummyHandler);
 
     // Unsubscribe
@@ -86,12 +86,12 @@ public:
     // unsubscribed after call.
     REDIS_CLIENT_DECL void singleShotSubscribe(
             const std::string &channel,
-            std::function<void(std::vector<char> msg)> msgHandler,
+            RedisClientImpl::MsgHandler msgHandler,
             std::function<void(RedisValue)> handler = &dummyHandler);
 
     REDIS_CLIENT_DECL void singleShotPSubscribe(
             const std::string &channel,
-            std::function<void(std::vector<char> msg)> msgHandler,
+            RedisClientImpl::MsgHandler msgHandler,
             std::function<void(RedisValue)> handler = &dummyHandler);
 
     // Publish message on channel.

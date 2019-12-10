@@ -20,10 +20,10 @@ set(CMAKE_CXX_STANDARD 11)
 # Build options
 option(ADDRESS_SANITIZER "Enable address sanitizer" OFF)
 option(BENCHMARK "Build benmarks" OFF)
-option(BUILD_SHARED_LIBS "Whether to build shared libraries" ON)
-option(BUILD_TEST "Whether to build the unit tests" ON)
+option(BUILD_SHARED_LIBS "Whether to build shared libraries" OFF)
+option(BUILD_TEST "Whether to build the unit tests" OFF)
 option(BUILD_EXAMPLES "Whether to build the examples" ON)
-option(HEADER_ONLY "Whether to build in header-only mode" OFF)
+option(HEADER_ONLY "Whether to build in header-only mode" ON)
 
 # Default to Release mode
 if (NOT CMAKE_BUILD_TYPE)
