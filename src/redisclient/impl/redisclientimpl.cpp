@@ -12,6 +12,10 @@
 
 #include "redisclientimpl.h"
 
+#ifdef __APPLE__
+typedef suseconds_t __suseconds_t;
+#endif
+
 namespace
 {
     static const char crlf[] = {'\r', '\n'};
