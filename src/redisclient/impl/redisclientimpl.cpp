@@ -134,7 +134,7 @@ namespace
     {
         struct timeval tv = {static_cast<time_t>(timeoutMsec / 1000),
             static_cast<__suseconds_t>((timeoutMsec % 1000) * 1000)};
-        int result = setsockopt(socket, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+        int result = setsockopt(socket, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
 
         if (result != 0)
         {
