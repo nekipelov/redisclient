@@ -36,6 +36,11 @@ public:
         Subscribed,
         Closed
     };
+    
+    typedef  std::function<void(const std::vector<char> &buf,const std::vector<char> &p)> MsgHandler;
+    typedef std::pair<size_t, MsgHandler > MsgHandlerType;
+    typedef std::function<void(const std::vector<char> &buf,const std::vector<char> &p)> SingleShotHandlerType;
+    
 
     REDIS_CLIENT_DECL RedisClientImpl(boost::asio::io_service &ioService);
     REDIS_CLIENT_DECL ~RedisClientImpl();
@@ -46,12 +51,12 @@ public:
 
     REDIS_CLIENT_DECL size_t subscribe(const std::string &command,
         const std::string &channel,
-        std::function<void(std::vector<char> msg)> msgHandler,
+        MsgHandler msgHandler,
         std::function<void(RedisValue)> handler);
 
     REDIS_CLIENT_DECL void singleShotSubscribe(const std::string &command,
         const std::string &channel,
-        std::function<void(std::vector<char> msg)> msgHandler,
+        MsgHandler msgHandler,
         std::function<void(RedisValue)> handler);
 
     REDIS_CLIENT_DECL void unsubscribe(const std::string &command,
@@ -98,8 +103,6 @@ public:
     size_t bufSize; // only for sync
     size_t subscribeSeq;
 
-    typedef std::pair<size_t, std::function<void(const std::vector<char> &buf)> > MsgHandlerType;
-    typedef std::function<void(const std::vector<char> &buf)> SingleShotHandlerType;
 
     typedef std::multimap<std::string, MsgHandlerType> MsgHandlersMap;
     typedef std::multimap<std::string, SingleShotHandlerType> SingleShotHandlersMap;
