@@ -12,6 +12,10 @@
 
 #include "redisclientimpl.h"
 
+#ifdef __APPLE__
+typedef suseconds_t __suseconds_t;
+#endif
+
 namespace
 {
     static const char crlf[] = {'\r', '\n'};
@@ -356,8 +360,9 @@ void RedisClientImpl::asyncWrite(const boost::system::error_code &ec, size_t)
         std::swap(dataQueued, dataWrited);
 
         boost::asio::async_write(socket, buffers,
-                std::bind(&RedisClientImpl::asyncWrite, shared_from_this(),
-                    std::placeholders::_1, std::placeholders::_2));
+                strand.wrap(
+                    std::bind(&RedisClientImpl::asyncWrite, shared_from_this(),
+                        std::placeholders::_1, std::placeholders::_2)));
     }
 }
 
