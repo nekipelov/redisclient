@@ -31,7 +31,6 @@ void RedisAsyncClient::connect(const boost::asio::ip::tcp::endpoint &endpoint,
     if( pimpl->state == State::Closed )
     {
         pimpl->redisParser = RedisParser();
-        std::move(pimpl->socket);
     }
 
     if( pimpl->state == State::Unconnected || pimpl->state == State::Closed )
